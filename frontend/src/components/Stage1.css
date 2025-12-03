@@ -24,7 +24,7 @@
   padding: calc(var(--size-base) * 2) calc(var(--size-base) * 4);
   background: var(--bg-primary);
   border: 1px solid var(--border-secondary);
-  border-radius: calc(var(--size-base) * 2) calc(var(--size-base) * 2) 0 0;
+  border-radius: calc(var(--size-base) * 2);
   color: var(--text-secondary);
   cursor: pointer;
   font-size: calc(var(--size-base) * 4);
@@ -33,14 +33,11 @@
 .tab:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
-  border-color: var(--accent-primary);
 }
 
 .tab.active {
   background: var(--bg-primary);
   color: var(--accent-primary);
-  border-color: var(--accent-primary);
-  border-bottom-color: var(--bg-primary);
   font-weight: 600;
 }
 

@@ -101,13 +101,6 @@ export default function ChatInterface({
           ))
         )}
 
-        {isLoading && (
-          <div className="loading-indicator">
-            <div className="spinner"></div>
-            <span>Consulting the council...</span>
-          </div>
-        )}
-
         <div ref={messagesEndRef} />
       </div>
 
@@ -126,7 +119,7 @@ export default function ChatInterface({
           <button
             type="submit"
             className="send-button"
-            disabled={!input.trim() || isLoading}
+            disabled={(!input.trim() || input.trim().length < 5) || isLoading}
           >
             Send
           </button>
