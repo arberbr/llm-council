@@ -54,7 +54,7 @@
   color: var(--accent-secondary);
   font-weight: 700;
   font-size: calc(var(--size-base) * 4);
-  min-width: 35px;
+  min-width: calc(var(--size-base) * 9);
 }
 
 .rank-model {
@@ -102,7 +102,7 @@
 .stage2 .tab-content {
   background: var(--bg-primary);
   padding: calc(var(--size-base) * 4);
-  border-radius: 6px;
+  border-radius: calc(var(--size-base) * 2);
   border: 1px solid var(--stage-border);
   margin-bottom: calc(var(--size-base) * 5);
 }

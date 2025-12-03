@@ -6,8 +6,8 @@
 
 .final-response {
   background: var(--bg-primary);
-  padding: 20px;
-  border-radius: 6px;
+  padding: calc(var(--size-base) * 5);
+  border-radius: calc(var(--size-base) * 2);
   border: 1px solid var(--stage-success-border);
 }
 
