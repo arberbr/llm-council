@@ -2,7 +2,9 @@
  * API client for the LLM Council backend.
  */
 
+// const API_BASE = process.env.REACT_APP_API_BASE;
 const API_BASE = 'http://localhost:8001';
+console.log(API_BASE);
 
 export const api = {
   /**

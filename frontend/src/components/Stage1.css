@@ -1,34 +1,33 @@
 .stage {
-  margin: 24px 0;
-  padding: 20px;
+  margin: calc(var(--size-base) * 6) 0;
+  padding: calc(var(--size-base) * 5);
   background: var(--stage-bg);
-  border-radius: 8px;
+  border-radius: calc(var(--size-base) * 2);
   border: 1px solid var(--stage-border);
 }
 
 .stage-title {
-  margin: 0 0 16px 0;
+  margin: 0 0 calc(var(--size-base) * 4) 0;
   color: var(--text-primary);
-  font-size: 16px;
+  font-size: calc(var(--size-base) * 4);
   font-weight: 600;
 }
 
 .tabs {
   display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: calc(var(--size-base) * 2);
+  margin-bottom: calc(var(--size-base) * 4);
   flex-wrap: wrap;
 }
 
 .tab {
-  padding: 8px 16px;
+  padding: calc(var(--size-base) * 2) calc(var(--size-base) * 4);
   background: var(--bg-primary);
   border: 1px solid var(--border-secondary);
-  border-radius: 6px 6px 0 0;
+  border-radius: calc(var(--size-base) * 2) calc(var(--size-base) * 2) 0 0;
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s;
+  font-size: calc(var(--size-base) * 4);
 }
 
 .tab:hover {
@@ -47,15 +46,15 @@
 
 .tab-content {
   background: var(--bg-primary);
-  padding: 16px;
-  border-radius: 6px;
+  padding: calc(var(--size-base) * 4);
+  border-radius: calc(var(--size-base) * 2);
   border: 1px solid var(--stage-border);
 }
 
 .model-name {
   color: var(--text-tertiary);
-  font-size: 12px;
-  margin-bottom: 12px;
+  font-size: calc(var(--size-base) * 3);
+  margin-bottom: calc(var(--size-base) * 3);
   font-family: monospace;
 }
 
