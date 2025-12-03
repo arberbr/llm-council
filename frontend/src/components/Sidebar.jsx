@@ -1,4 +1,5 @@
 import './Sidebar.css';
+import { useTheme } from '../ThemeContext';
 
 export default function Sidebar({
   conversations,
@@ -7,12 +8,17 @@ export default function Sidebar({
   onDeleteConversation,
   onHomeClick,
 }) {
+  const { theme, toggleTheme } = useTheme();
+
   return (
     <div className="sidebar">
       <div className="sidebar-header">
         <h1 className="sidebar-title" onClick={onHomeClick}>
           LLM Council
         </h1>
+        <button className="theme-toggle" onClick={toggleTheme} title={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}>
+          {theme === 'light' ? '🌙' : '☀️'}
+        </button>
       </div>
 
       <div className="conversation-list">
