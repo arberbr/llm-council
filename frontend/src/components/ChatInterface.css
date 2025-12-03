@@ -33,12 +33,7 @@
   font-size: calc(var(--size-base) * 4);
 }
 
-.message-group {
-  margin-bottom: calc(var(--size-base) * 8);
-}
-
-.user-message,
-.assistant-message {
+.user-message {
   margin-bottom: calc(var(--size-base) * 4);
 }
 
