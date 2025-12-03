@@ -1,5 +1,5 @@
 import './Sidebar.css';
-import { useTheme } from '../ThemeContext';
+import { useTheme } from '../context/ThemeContext';
 
 export default function Sidebar({
   conversations,
