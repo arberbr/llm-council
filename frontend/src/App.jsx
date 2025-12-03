@@ -1,10 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import ChatInterface from './components/ChatInterface';
 import { api } from './api';
 import './App.css';
 
 function App() {
+  const { conversationId } = useParams();
+  const navigate = useNavigate();
+  const isSendingMessageRef = useRef(false);
+
   const [conversations, setConversations] = useState([]);
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [currentConversation, setCurrentConversation] = useState(null);
@@ -15,12 +20,20 @@ function App() {
     loadConversations();
   }, []);
 
-  // Load conversation details when selected
+  // Sync URL param to currently selected conversation and load it
   useEffect(() => {
-    if (currentConversationId) {
-      loadConversation(currentConversationId);
+    if (conversationId) {
+      setCurrentConversationId(conversationId);
+      // Only load from backend if we don't already have this conversation loaded
+      // and we're not in the middle of sending a message (which would overwrite optimistic updates)
+      if (!isSendingMessageRef.current && (!currentConversation || currentConversation.id !== conversationId)) {
+        loadConversation(conversationId);
+      }
+    } else {
+      setCurrentConversationId(null);
+      setCurrentConversation(null);
     }
-  }, [currentConversationId]);
+  }, [conversationId]);
 
   const loadConversations = async () => {
     try {
@@ -47,26 +60,75 @@ function App() {
         { id: newConv.id, created_at: newConv.created_at, message_count: 0 },
         ...conversations,
       ]);
-      setCurrentConversationId(newConv.id);
+      navigate(`/${newConv.id}`);
     } catch (error) {
       console.error('Failed to create conversation:', error);
     }
   };
 
   const handleSelectConversation = (id) => {
-    setCurrentConversationId(id);
+    navigate(`/${id}`);
+  };
+
+  const handleHomeClick = () => {
+    navigate('/');
+  };
+
+  const handleDeleteConversation = async (id) => {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this conversation? This cannot be undone.'
+    );
+    if (!confirmed) return;
+
+    try {
+      await api.deleteConversation(id);
+
+      setConversations((prev) => prev.filter((c) => c.id !== id));
+
+      if (currentConversationId === id) {
+        // If we deleted the currently active conversation, go back to the home view
+        navigate('/');
+      }
+    } catch (error) {
+      console.error('Failed to delete conversation:', error);
+    }
   };
 
   const handleSendMessage = async (content) => {
-    if (!currentConversationId) return;
-
     setIsLoading(true);
+    isSendingMessageRef.current = true;
     try {
+      let convId = currentConversationId;
+
+      // If there is no active conversation (e.g., on the homepage), create one first
+      if (!convId) {
+        const newConv = await api.createConversation();
+        convId = newConv.id;
+
+        setConversations((prev) => [
+          { id: newConv.id, created_at: newConv.created_at, message_count: 0 },
+          ...prev,
+        ]);
+
+        // Set the conversation state before navigating to avoid race condition
+        const newConversation = {
+          id: newConv.id,
+          created_at: newConv.created_at,
+          title: newConv.title || 'New Conversation',
+          messages: [],
+        };
+        setCurrentConversation(newConversation);
+        setCurrentConversationId(newConv.id);
+
+        // Navigate after setting state
+        navigate(`/${newConv.id}`, { replace: true });
+      }
+
       // Optimistically add user message to UI
       const userMessage = { role: 'user', content };
       setCurrentConversation((prev) => ({
         ...prev,
-        messages: [...prev.messages, userMessage],
+        messages: [...(prev?.messages ?? []), userMessage],
       }));
 
       // Create a partial assistant message that will be updated progressively
@@ -86,11 +148,11 @@ function App() {
       // Add the partial assistant message
       setCurrentConversation((prev) => ({
         ...prev,
-        messages: [...prev.messages, assistantMessage],
+        messages: [...(prev?.messages ?? []), assistantMessage],
       }));
 
       // Send message with streaming
-      await api.sendMessageStream(currentConversationId, content, (eventType, event) => {
+      await api.sendMessageStream(convId, content, (eventType, event) => {
         switch (eventType) {
           case 'stage1_start':
             setCurrentConversation((prev) => {
@@ -159,11 +221,13 @@ function App() {
             // Stream complete, reload conversations list
             loadConversations();
             setIsLoading(false);
+            isSendingMessageRef.current = false;
             break;
 
           case 'error':
             console.error('Stream error:', event.message);
             setIsLoading(false);
+            isSendingMessageRef.current = false;
             break;
 
           default:
@@ -175,9 +239,10 @@ function App() {
       // Remove optimistic messages on error
       setCurrentConversation((prev) => ({
         ...prev,
-        messages: prev.messages.slice(0, -2),
+        messages: prev?.messages?.slice(0, -2) ?? [],
       }));
       setIsLoading(false);
+      isSendingMessageRef.current = false;
     }
   };
 
@@ -188,6 +253,8 @@ function App() {
         currentConversationId={currentConversationId}
         onSelectConversation={handleSelectConversation}
         onNewConversation={handleNewConversation}
+        onDeleteConversation={handleDeleteConversation}
+        onHomeClick={handleHomeClick}
       />
       <ChatInterface
         conversation={currentConversation}

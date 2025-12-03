@@ -1,9 +1,13 @@
 """Configuration for the LLM Council."""
 
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Project root (two levels up from this file: backend/config.py -> project root)
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 # OpenRouter API key
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
@@ -22,5 +26,5 @@ CHAIRMAN_MODEL = "google/gemini-3-pro-preview"
 # OpenRouter API endpoint
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
-# Data directory for conversation storage
-DATA_DIR = "data/conversations"
+# Data directory for conversation storage (absolute, so it persists regardless of CWD)
+DATA_DIR = str(PROJECT_ROOT / "data" / "conversations")
