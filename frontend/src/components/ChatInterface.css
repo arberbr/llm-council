@@ -34,7 +34,7 @@
 }
 
 .user-message {
-  margin-bottom: calc(var(--size-base) * 4);
+  margin-bottom: calc(var(--size-base) * 6);
 }
 
 .message-label {
