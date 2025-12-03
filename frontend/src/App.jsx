@@ -8,7 +8,7 @@ import './App.css';
 function App() {
   const { conversationId } = useParams();
   const navigate = useNavigate();
-  const isSendingMessageRef = useRef(false);
+  const sendingToConversationIdRef = useRef(null);
 
   const [conversations, setConversations] = useState([]);
   const [currentConversationId, setCurrentConversationId] = useState(null);
@@ -24,9 +24,15 @@ function App() {
   useEffect(() => {
     if (conversationId) {
       setCurrentConversationId(conversationId);
-      // Only load from backend if we don't already have this conversation loaded
-      // and we're not in the middle of sending a message (which would overwrite optimistic updates)
-      if (!isSendingMessageRef.current && (!currentConversation || currentConversation.id !== conversationId)) {
+      // Only skip loading if:
+      // 1. We already have this conversation loaded, OR
+      // 2. We're sending a message to THIS SAME conversation (to avoid overwriting optimistic updates)
+      // If we're sending to a different conversation and navigate here, we should load it
+      const shouldSkipLoad =
+        (currentConversation && currentConversation.id === conversationId) ||
+        (sendingToConversationIdRef.current === conversationId);
+
+      if (!shouldSkipLoad) {
         loadConversation(conversationId);
       }
     } else {
@@ -96,7 +102,6 @@ function App() {
 
   const handleSendMessage = async (content) => {
     setIsLoading(true);
-    isSendingMessageRef.current = true;
     try {
       let convId = currentConversationId;
 
@@ -123,6 +128,9 @@ function App() {
         // Navigate after setting state
         navigate(`/${newConv.id}`, { replace: true });
       }
+
+      // Track which conversation we're sending to
+      sendingToConversationIdRef.current = convId;
 
       // Optimistically add user message to UI
       const userMessage = { role: 'user', content };
@@ -221,13 +229,21 @@ function App() {
             // Stream complete, reload conversations list
             loadConversations();
             setIsLoading(false);
-            isSendingMessageRef.current = false;
+            sendingToConversationIdRef.current = null;
+            // If we navigated away during sending, ensure the current conversation is loaded
+            if (conversationId && conversationId !== convId) {
+              loadConversation(conversationId);
+            }
             break;
 
           case 'error':
             console.error('Stream error:', event.message);
             setIsLoading(false);
-            isSendingMessageRef.current = false;
+            sendingToConversationIdRef.current = null;
+            // If we navigated away during sending, ensure the current conversation is loaded
+            if (conversationId && conversationId !== convId) {
+              loadConversation(conversationId);
+            }
             break;
 
           default:
@@ -236,13 +252,24 @@ function App() {
       });
     } catch (error) {
       console.error('Failed to send message:', error);
-      // Remove optimistic messages on error
-      setCurrentConversation((prev) => ({
-        ...prev,
-        messages: prev?.messages?.slice(0, -2) ?? [],
-      }));
+      // Remove optimistic messages on error (only if we're still on the same conversation)
+      const wasSendingTo = sendingToConversationIdRef.current;
+      sendingToConversationIdRef.current = null;
+
+      // Only remove optimistic messages if we're still viewing the conversation we were sending to
+      if (wasSendingTo && currentConversationId === wasSendingTo) {
+        setCurrentConversation((prev) => ({
+          ...prev,
+          messages: prev?.messages?.slice(0, -2) ?? [],
+        }));
+      }
+
       setIsLoading(false);
-      isSendingMessageRef.current = false;
+
+      // If we navigated away during sending, ensure the current conversation is loaded
+      if (conversationId && wasSendingTo && conversationId !== wasSendingTo) {
+        loadConversation(conversationId);
+      }
     }
   };
 
