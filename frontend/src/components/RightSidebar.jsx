@@ -139,9 +139,7 @@ export default function RightSidebar({ isVisible }) {
                 {/* Council Models Selection */}
                 <div className="settings-section">
                     <div className="settings-section-header">
-                        <h3 className="settings-section-title">Council Models</h3>
-                        <span className="settings-hint">(Select at least 2)</span>
-                    </div>
+                        <h3 className="settings-section-title">Council Models</h3>                    </div>
                     <div className="model-selection-list">
                         {AVAILABLE_MODELS.map((model) => (
                             <label key={model.id} className="model-checkbox-label">
