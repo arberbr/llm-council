@@ -9,6 +9,8 @@ export default function ChatInterface({
   conversation,
   onSendMessage,
   isLoading,
+  isRightSidebarVisible,
+  onToggleRightSidebar,
 }) {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef(null);
@@ -42,7 +44,15 @@ export default function ChatInterface({
   const messages = conversation?.messages ?? [];
 
   return (
-    <div className="chat-interface">
+    <div className={`chat-interface ${!isRightSidebarVisible ? 'sidebar-hidden' : ''}`}>
+      <button
+        className="sidebar-toggle-btn"
+        onClick={onToggleRightSidebar}
+        title={isRightSidebarVisible ? 'Hide sidebar' : 'Show sidebar'}
+        aria-label={isRightSidebarVisible ? 'Hide sidebar' : 'Show sidebar'}
+      >
+        {isRightSidebarVisible ? '▶' : '◀'}
+      </button>
       <div className="messages-container">
         {!conversation || messages.length === 0 ? (
           <div className="empty-state">
