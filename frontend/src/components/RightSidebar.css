@@ -139,7 +139,6 @@
 
 .chairman-select:focus {
     border-color: var(--accent-primary);
-    box-shadow: 0 0 0 calc(var(--size-base) * 1) var(--shadow-focus);
 }
 
 .chairman-select option {
@@ -169,7 +168,6 @@
 
 .api-key-input:focus {
     border-color: var(--accent-primary);
-    box-shadow: 0 0 0 calc(var(--size-base) * 1) var(--shadow-focus);
 }
 
 .settings-hint {
