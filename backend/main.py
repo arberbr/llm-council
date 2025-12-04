@@ -8,16 +8,21 @@ from typing import List, Dict, Any
 import uuid
 import json
 import asyncio
+import logging
 
 from . import storage
 from .council import run_full_council, generate_conversation_title, stage1_collect_responses, stage2_collect_rankings, stage3_synthesize_final, calculate_aggregate_rankings
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="LLM Council API")
 
 # Enable CORS for local development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -32,6 +37,30 @@ class CreateConversationRequest(BaseModel):
 class SendMessageRequest(BaseModel):
     """Request to send a message in a conversation."""
     content: str
+    api_key: str | None = None
+    council_models: List[str] | None = None
+    chairman_model: str | None = None
+
+
+def validate_settings(request: SendMessageRequest):
+    """Validate that required settings are provided."""
+    errors = []
+    
+    if not request.api_key or not request.api_key.strip():
+        errors.append("OpenRouter API key is required")
+    
+    if not request.chairman_model or not request.chairman_model.strip():
+        errors.append("Chairman model must be selected")
+    
+    if not request.council_models or not isinstance(request.council_models, list):
+        errors.append("At least 2 council models must be selected")
+    elif len(request.council_models) < 2:
+        errors.append("At least 2 council models must be selected")
+    
+    if errors:
+        raise HTTPException(status_code=400, detail="; ".join(errors))
+    
+    return True
 
 
 class ConversationMetadata(BaseModel):
@@ -105,14 +134,29 @@ async def send_message(conversation_id: str, request: SendMessageRequest):
     # Add user message
     storage.add_user_message(conversation_id, request.content)
 
+    # Validate settings
+    validate_settings(request)
+    
+    # Extract settings from request
+    api_key = request.api_key
+    council_models = request.council_models
+    chairman_model = request.chairman_model
+    
+    # Debug logging
+    logger.info(f"Received settings - api_key: {'***' if api_key else None}, council_models: {council_models}, chairman_model: {chairman_model}")
+    logger.info(f"Request body keys: {request.model_dump().keys()}")
+
     # If this is the first message, generate a title
     if is_first_message:
-        title = await generate_conversation_title(request.content)
+        title = await generate_conversation_title(request.content, api_key=api_key)
         storage.update_conversation_title(conversation_id, title)
 
     # Run the 3-stage council process
     stage1_results, stage2_results, stage3_result, metadata = await run_full_council(
-        request.content
+        request.content,
+        council_models=council_models,
+        chairman_model=chairman_model,
+        api_key=api_key
     )
 
     # Add assistant message with all stages
@@ -138,6 +182,18 @@ async def send_message_stream(conversation_id: str, request: SendMessageRequest)
     Send a message and stream the 3-stage council process.
     Returns Server-Sent Events as each stage completes.
     """
+    # Validate settings first (before creating the generator)
+    validate_settings(request)
+    
+    # Debug: Log the request immediately when received
+    logger.info("=" * 50)
+    logger.info(f"STREAM REQUEST RECEIVED for conversation {conversation_id}")
+    logger.info(f"Request model dump: {request.model_dump()}")
+    logger.info(f"api_key present: {request.api_key is not None}")
+    logger.info(f"council_models: {request.council_models}")
+    logger.info(f"chairman_model: {request.chairman_model}")
+    logger.info("=" * 50)
+    
     # Check if conversation exists
     conversation = storage.get_conversation(conversation_id)
     if conversation is None:
@@ -150,26 +206,34 @@ async def send_message_stream(conversation_id: str, request: SendMessageRequest)
         try:
             # Add user message
             storage.add_user_message(conversation_id, request.content)
+            
+            # Extract settings from request
+            api_key = request.api_key
+            council_models = request.council_models
+            chairman_model = request.chairman_model
+            
+            # Debug logging
+            logger.info(f"Inside event_generator - api_key: {'***' if api_key else None}, council_models: {council_models}, chairman_model: {chairman_model}")
 
             # Start title generation in parallel (don't await yet)
             title_task = None
             if is_first_message:
-                title_task = asyncio.create_task(generate_conversation_title(request.content))
+                title_task = asyncio.create_task(generate_conversation_title(request.content, api_key=api_key))
 
             # Stage 1: Collect responses
             yield f"data: {json.dumps({'type': 'stage1_start'})}\n\n"
-            stage1_results = await stage1_collect_responses(request.content)
+            stage1_results = await stage1_collect_responses(request.content, council_models=council_models, api_key=api_key)
             yield f"data: {json.dumps({'type': 'stage1_complete', 'data': stage1_results})}\n\n"
 
             # Stage 2: Collect rankings
             yield f"data: {json.dumps({'type': 'stage2_start'})}\n\n"
-            stage2_results, label_to_model = await stage2_collect_rankings(request.content, stage1_results)
+            stage2_results, label_to_model = await stage2_collect_rankings(request.content, stage1_results, council_models=council_models, api_key=api_key)
             aggregate_rankings = calculate_aggregate_rankings(stage2_results, label_to_model)
             yield f"data: {json.dumps({'type': 'stage2_complete', 'data': stage2_results, 'metadata': {'label_to_model': label_to_model, 'aggregate_rankings': aggregate_rankings}})}\n\n"
 
             # Stage 3: Synthesize final answer
             yield f"data: {json.dumps({'type': 'stage3_start'})}\n\n"
-            stage3_result = await stage3_synthesize_final(request.content, stage1_results, stage2_results)
+            stage3_result = await stage3_synthesize_final(request.content, stage1_results, stage2_results, chairman_model=chairman_model, api_key=api_key)
             yield f"data: {json.dumps({'type': 'stage3_complete', 'data': stage3_result})}\n\n"
 
             # Wait for title generation if it was started

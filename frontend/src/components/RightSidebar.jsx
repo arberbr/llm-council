@@ -50,8 +50,8 @@ export default function RightSidebar() {
     const handleCouncilModelToggle = (modelId) => {
         setCouncilModels((prev) => {
             if (prev.includes(modelId)) {
-                // Remove if already selected (but keep at least one)
-                if (prev.length > 1) {
+                // Remove if already selected (but keep at least 2)
+                if (prev.length > 2) {
                     return prev.filter((id) => id !== modelId);
                 }
                 return prev;
@@ -61,6 +61,28 @@ export default function RightSidebar() {
             }
         });
     };
+
+    // Validation helper
+    const validateSettings = () => {
+        const errors = [];
+
+        if (!openRouterApiKey || !openRouterApiKey.trim()) {
+            errors.push('OpenRouter API key is required');
+        }
+
+        if (!chairmanModel || !chairmanModel.trim()) {
+            errors.push('Chairman model must be selected');
+        }
+
+        if (!councilModels || councilModels.length < 2) {
+            errors.push('At least 2 council models must be selected');
+        }
+
+        return errors;
+    };
+
+    // Get validation errors for display
+    const validationErrors = validateSettings();
 
     return (
         <div className="right-sidebar">
@@ -118,6 +140,7 @@ export default function RightSidebar() {
                 <div className="settings-section">
                     <div className="settings-section-header">
                         <h3 className="settings-section-title">Council Models</h3>
+                        <span className="settings-hint">(Select at least 2)</span>
                     </div>
                     <div className="model-selection-list">
                         {AVAILABLE_MODELS.map((model) => (
@@ -133,6 +156,24 @@ export default function RightSidebar() {
                         ))}
                     </div>
                 </div>
+
+                {/* Validation Errors */}
+                {validationErrors.length > 0 && (
+                    <div className="settings-section validation-errors">
+                        <div className="settings-section-header">
+                            <h3 className="settings-section-title" style={{ color: '#ff4444' }}>
+                                Configuration Required
+                            </h3>
+                        </div>
+                        <ul className="validation-error-list">
+                            {validationErrors.map((error, index) => (
+                                <li key={index} className="validation-error-item">
+                                    {error}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
             </div>
         </div>
     );

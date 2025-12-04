@@ -102,6 +102,39 @@ function App() {
   };
 
   const handleSendMessage = async (content) => {
+    // Validate settings before sending
+    const openRouterApiKey = localStorage.getItem('openRouterApiKey');
+    const councilModelsStr = localStorage.getItem('councilModels');
+    const chairmanModel = localStorage.getItem('chairmanModel');
+
+    const errors = [];
+
+    if (!openRouterApiKey || !openRouterApiKey.trim()) {
+      errors.push('OpenRouter API key is required. Please set it in the settings.');
+    }
+
+    if (!chairmanModel || !chairmanModel.trim()) {
+      errors.push('Chairman model must be selected. Please select one in the settings.');
+    }
+
+    let councilModels = [];
+    if (councilModelsStr) {
+      try {
+        councilModels = JSON.parse(councilModelsStr);
+      } catch (e) {
+        errors.push('Invalid council models configuration.');
+      }
+    }
+
+    if (!councilModels || councilModels.length < 2) {
+      errors.push('At least 2 council models must be selected. Please select at least 2 in the settings.');
+    }
+
+    if (errors.length > 0) {
+      alert('Configuration Error:\n\n' + errors.join('\n'));
+      return;
+    }
+
     setIsLoading(true);
     try {
       let convId = currentConversationId;

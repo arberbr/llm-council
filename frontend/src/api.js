@@ -67,6 +67,29 @@ export const api = {
    * Send a message in a conversation.
    */
   async sendMessage(conversationId, content) {
+    // Read settings from localStorage
+    const openRouterApiKey = localStorage.getItem('openRouterApiKey');
+    const councilModelsStr = localStorage.getItem('councilModels');
+    const chairmanModel = localStorage.getItem('chairmanModel');
+
+    const requestBody = { content };
+    if (openRouterApiKey && openRouterApiKey.trim()) {
+      requestBody.api_key = openRouterApiKey;
+    }
+    if (councilModelsStr) {
+      try {
+        const councilModels = JSON.parse(councilModelsStr);
+        if (councilModels && Array.isArray(councilModels) && councilModels.length > 0) {
+          requestBody.council_models = councilModels;
+        }
+      } catch (e) {
+        console.error('Failed to parse councilModels:', e);
+      }
+    }
+    if (chairmanModel && chairmanModel.trim()) {
+      requestBody.chairman_model = chairmanModel;
+    }
+
     const response = await fetch(
       `${API_BASE}/api/conversations/${conversationId}/message`,
       {
@@ -74,7 +97,7 @@ export const api = {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify(requestBody),
       }
     );
     if (!response.ok) {
@@ -91,6 +114,38 @@ export const api = {
    * @returns {Promise<void>}
    */
   async sendMessageStream(conversationId, content, onEvent) {
+    // Read settings from localStorage
+    const openRouterApiKey = localStorage.getItem('openRouterApiKey');
+    const councilModelsStr = localStorage.getItem('councilModels');
+    const chairmanModel = localStorage.getItem('chairmanModel');
+
+    const requestBody = { content };
+    if (openRouterApiKey && openRouterApiKey.trim()) {
+      requestBody.api_key = openRouterApiKey;
+    }
+    if (councilModelsStr) {
+      try {
+        const councilModels = JSON.parse(councilModelsStr);
+        if (councilModels && Array.isArray(councilModels) && councilModels.length > 0) {
+          requestBody.council_models = councilModels;
+        }
+      } catch (e) {
+        console.error('Failed to parse councilModels:', e);
+      }
+    }
+    if (chairmanModel && chairmanModel.trim()) {
+      requestBody.chairman_model = chairmanModel;
+    }
+
+    // Debug logging
+    console.log('=== FRONTEND: Settings from localStorage ===', {
+      rawChairmanModel: chairmanModel,
+      rawCouncilModels: councilModelsStr,
+      hasApiKey: !!openRouterApiKey
+    });
+    console.log('=== FRONTEND: Request body being sent ===', requestBody);
+    console.log('=== FRONTEND: Final request body JSON ===', JSON.stringify(requestBody));
+
     const response = await fetch(
       `${API_BASE}/api/conversations/${conversationId}/message/stream`,
       {
@@ -98,7 +153,7 @@ export const api = {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify(requestBody),
       }
     );
 

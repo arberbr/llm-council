@@ -67,7 +67,6 @@
     align-items: center;
     gap: calc(var(--size-base) * 3);
     color: var(--text-primary);
-    transition: all 0.2s;
 }
 
 .theme-toggle:hover {
@@ -121,7 +120,6 @@
     font-size: calc(var(--size-base) * 4);
     cursor: pointer;
     outline: none;
-    transition: all 0.2s;
 }
 
 .chairman-select:hover {
@@ -148,7 +146,6 @@
     font-size: calc(var(--size-base) * 4);
     font-family: monospace;
     outline: none;
-    transition: all 0.2s;
 }
 
 .api-key-input::placeholder {
@@ -162,4 +159,30 @@
 .api-key-input:focus {
     border-color: var(--accent-primary);
     box-shadow: 0 0 0 calc(var(--size-base) * 1) var(--shadow-focus);
+}
+
+.settings-hint {
+    font-size: calc(var(--size-base) * 3);
+    color: var(--text-tertiary);
+    font-weight: normal;
+}
+
+.validation-errors {
+    background: var(--bg-primary);
+    border: 1px solid #ff4444;
+    border-radius: calc(var(--size-base) * 2);
+    padding: calc(var(--size-base) * 3);
+}
+
+.validation-error-list {
+    margin: calc(var(--size-base) * 2) 0 0 0;
+    padding-left: calc(var(--size-base) * 6);
+    list-style: disc;
+}
+
+.validation-error-item {
+    font-size: calc(var(--size-base) * 3.5);
+    color: #ff4444;
+    margin: calc(var(--size-base) * 1) 0;
+    line-height: 1.4;
 }
