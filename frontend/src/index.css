@@ -98,6 +98,11 @@ body {
   color: var(--text-primary);
 }
 
+button, input, textarea, select {
+  border: none;
+  outline: none;
+}
+
 .app {
   display: flex;
   height: 100vh;

@@ -25,7 +25,6 @@
   padding: calc(var(--size-base) * 4);
   border-radius: calc(var(--size-base) * 2);
   margin-bottom: calc(var(--size-base) * 5);
-  border: 2px solid var(--border-message);
 }
 
 .aggregate-rankings h4 {
@@ -47,7 +46,6 @@
   padding: calc(var(--size-base) * 3);
   background: var(--bg-primary);
   border-radius: calc(var(--size-base) * 2);
-  border: 1px solid var(--border-message);
 }
 
 .rank-position {
@@ -81,7 +79,6 @@
 .stage2 .tab {
   padding: calc(var(--size-base) * 2) calc(var(--size-base) * 4);
   background: var(--bg-primary);
-  border: 1px solid var(--border-secondary);
   border-radius: calc(var(--size-base) * 2);
   color: var(--text-secondary);
   cursor: pointer;
@@ -103,7 +100,6 @@
   background: var(--bg-primary);
   padding: calc(var(--size-base) * 4);
   border-radius: calc(var(--size-base) * 2);
-  border: 1px solid var(--stage-border);
   margin-bottom: calc(var(--size-base) * 5);
 }
 
@@ -123,7 +119,6 @@
 .parsed-ranking {
   margin-top: calc(var(--size-base) * 4);
   padding-top: calc(var(--size-base) * 4);
-  border-top: 2px solid var(--stage-border);
 }
 
 .parsed-ranking strong {

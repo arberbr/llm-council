@@ -137,15 +137,6 @@ export const api = {
       requestBody.chairman_model = chairmanModel;
     }
 
-    // Debug logging
-    console.log('=== FRONTEND: Settings from localStorage ===', {
-      rawChairmanModel: chairmanModel,
-      rawCouncilModels: councilModelsStr,
-      hasApiKey: !!openRouterApiKey
-    });
-    console.log('=== FRONTEND: Request body being sent ===', requestBody);
-    console.log('=== FRONTEND: Final request body JSON ===', JSON.stringify(requestBody));
-
     const response = await fetch(
       `${API_BASE}/api/conversations/${conversationId}/message/stream`,
       {

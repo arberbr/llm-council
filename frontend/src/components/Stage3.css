@@ -8,7 +8,6 @@
   background: var(--bg-primary);
   padding: calc(var(--size-base) * 5);
   border-radius: calc(var(--size-base) * 2);
-  border: 1px solid var(--stage-success-border);
 }
 
 .chairman-label {

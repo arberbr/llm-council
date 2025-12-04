@@ -1,9 +1,7 @@
 .right-sidebar {
     width: calc(var(--size-base) * 80);
-    min-width: calc(var(--size-base) * 80);
     flex-shrink: 0;
     background: var(--bg-secondary);
-    border-left: 1px solid var(--border-primary);
     display: flex;
     flex-direction: column;
     height: 100vh;
@@ -69,7 +67,6 @@
 
 .theme-toggle {
     background: var(--bg-primary);
-    border: 1px solid var(--border-primary);
     border-radius: calc(var(--size-base) * 2);
     padding: calc(var(--size-base) * 3) calc(var(--size-base) * 4);
     cursor: pointer;
@@ -125,7 +122,6 @@
     width: 100%;
     padding: calc(var(--size-base) * 3) calc(var(--size-base) * 4);
     background: var(--bg-primary);
-    border: 1px solid var(--border-primary);
     border-radius: calc(var(--size-base) * 2);
     color: var(--text-primary);
     font-size: calc(var(--size-base) * 4);
@@ -150,7 +146,6 @@
     width: 100%;
     padding: calc(var(--size-base) * 3) calc(var(--size-base) * 4);
     background: var(--bg-primary);
-    border: 1px solid var(--border-primary);
     border-radius: calc(var(--size-base) * 2);
     color: var(--text-primary);
     font-size: calc(var(--size-base) * 4);
@@ -178,7 +173,6 @@
 
 .validation-errors {
     background: var(--bg-primary);
-    border: 1px solid #ff4444;
     border-radius: calc(var(--size-base) * 2);
     padding: calc(var(--size-base) * 3);
 }

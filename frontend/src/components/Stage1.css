@@ -3,7 +3,6 @@
   padding: calc(var(--size-base) * 5);
   background: var(--stage-bg);
   border-radius: calc(var(--size-base) * 2);
-  border: 1px solid var(--stage-border);
 }
 
 .stage-title {
@@ -23,7 +22,6 @@
 .tab {
   padding: calc(var(--size-base) * 2) calc(var(--size-base) * 4);
   background: var(--bg-primary);
-  border: 1px solid var(--border-secondary);
   border-radius: calc(var(--size-base) * 2);
   color: var(--text-secondary);
   cursor: pointer;
@@ -45,7 +43,6 @@
   background: var(--bg-primary);
   padding: calc(var(--size-base) * 4);
   border-radius: calc(var(--size-base) * 2);
-  border: 1px solid var(--stage-border);
 }
 
 .model-name {

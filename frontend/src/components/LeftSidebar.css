@@ -3,7 +3,6 @@
   min-width: calc(var(--size-base) * 70);
   flex-shrink: 0;
   background: var(--bg-secondary);
-  border-right: 1px solid var(--border-primary);
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -37,7 +36,6 @@
   width: 100%;
   padding: calc(var(--size-base) * 3);
   background: var(--accent-primary);
-  border: 1px solid var(--accent-primary);
   border-radius: calc(var(--size-base) * 2);
   color: #fff;
   cursor: pointer;
@@ -78,7 +76,6 @@
 
 .conversation-item.active {
   background: var(--bg-active);
-  border: 1px solid var(--border-active);
 }
 
 .conversation-title {
@@ -97,7 +94,6 @@
 }
 
 .conversation-delete-btn {
-  border: none;
   background: transparent;
   color: #d11a2a;
   font-size: calc(var(--size-base) * 4);
