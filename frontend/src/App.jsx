@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import Sidebar from './components/Sidebar';
+import LeftSidebar from './components/LeftSidebar';
+import RightSidebar from './components/RightSidebar';
 import ChatInterface from './components/ChatInterface';
 import { api } from './api';
 import { ThemeProvider } from './context/ThemeContext';
@@ -276,7 +277,7 @@ function App() {
   return (
     <ThemeProvider>
       <div className="app">
-        <Sidebar
+        <LeftSidebar
           conversations={conversations}
           currentConversationId={currentConversationId}
           onSelectConversation={handleSelectConversation}
@@ -289,6 +290,7 @@ function App() {
           onSendMessage={handleSendMessage}
           isLoading={isLoading}
         />
+        <RightSidebar />
       </div>
     </ThemeProvider>
   );

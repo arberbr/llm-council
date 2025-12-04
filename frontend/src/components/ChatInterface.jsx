@@ -23,9 +23,11 @@ export default function ChatInterface({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (input.trim() && !isLoading) {
+    if (input.trim() && input.trim().length > 5 && !isLoading) {
       onSendMessage(input);
       setInput('');
+    } else {
+      alert('Please enter a question of at least 5 characters');
     }
   };
 
@@ -114,15 +116,14 @@ export default function ChatInterface({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={isLoading}
-            rows={3}
           />
-          <button
+          {/* <button
             type="submit"
             className="send-button"
             disabled={(!input.trim() || input.trim().length < 5) || isLoading}
           >
             Send
-          </button>
+          </button> */}
         </form>
       )}
     </div>

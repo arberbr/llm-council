@@ -3,6 +3,7 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
+  width: calc(100% - calc(var(--size-base) * 160));
   background: var(--bg-primary);
 }
 
@@ -115,41 +116,17 @@
   line-height: 1.3;
   outline: none;
   resize: none;
-  min-height: calc(var(--size-base) * 20);
+  min-height: calc(var(--size-base) * 8);
+  height: auto;
+  font-family: inherit;
 }
 
 .message-input:focus {
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 calc(var(--size-base) * 1) var(--shadow-focus);
 }
 
 .message-input:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   background: var(--bg-input-disabled);
-}
-
-.send-button {
-  padding: calc(var(--size-base) * 4) calc(var(--size-base) * 7);
-  background: var(--accent-primary);
-  border: 1px solid var(--accent-primary);
-  border-radius: calc(var(--size-base) * 2);
-  color: #fff;
-  font-size: calc(var(--size-base) * 4);
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  align-self: flex-end;
-}
-
-.send-button:hover:not(:disabled) {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
-}
-
-.send-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background: var(--text-tertiary);
-  border-color: var(--text-tertiary);
 }
