@@ -15,6 +15,10 @@ function App() {
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [currentConversation, setCurrentConversation] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Sidebar visibility state
+  const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
+  const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
 
   // Load conversations on mount
   useEffect(() => {
@@ -25,10 +29,6 @@ function App() {
   useEffect(() => {
     if (conversationId) {
       setCurrentConversationId(conversationId);
-      // Only skip loading if:
-      // 1. We already have this conversation loaded, OR
-      // 2. We're sending a message to THIS SAME conversation (to avoid overwriting optimistic updates)
-      // If we're sending to a different conversation and navigate here, we should load it
       const shouldSkipLoad =
         (currentConversation && currentConversation.id === conversationId) ||
         (sendingToConversationIdRef.current === conversationId);
@@ -343,20 +343,57 @@ function App() {
   return (
     <ThemeProvider>
       <div className="app">
+        {/* Left sidebar toggle button */}
+        <button
+          className={`sidebar-toggle sidebar-toggle-left ${leftSidebarOpen ? 'active' : ''}`}
+          onClick={() => setLeftSidebarOpen(!leftSidebarOpen)}
+          title="Toggle conversations"
+        >
+          ☰
+        </button>
+        
+        {/* Right sidebar toggle button */}
+        <button
+          className={`sidebar-toggle sidebar-toggle-right ${rightSidebarOpen ? 'active' : ''}`}
+          onClick={() => setRightSidebarOpen(!rightSidebarOpen)}
+          title="Toggle settings"
+        >
+          ⚙
+        </button>
+        
+        {/* Overlay for mobile */}
+        {(leftSidebarOpen || rightSidebarOpen) && (
+          <div
+            className="sidebar-overlay"
+            onClick={() => {
+              setLeftSidebarOpen(false);
+              setRightSidebarOpen(false);
+            }}
+          />
+        )}
+        
         <LeftSidebar
           conversations={conversations}
           currentConversationId={currentConversationId}
-          onSelectConversation={handleSelectConversation}
+          onSelectConversation={(id) => {
+            handleSelectConversation(id);
+            setLeftSidebarOpen(false);
+          }}
           onNewConversation={handleNewConversation}
           onDeleteConversation={handleDeleteConversation}
           onHomeClick={handleHomeClick}
+          isOpen={leftSidebarOpen}
+          onClose={() => setLeftSidebarOpen(false)}
         />
         <ChatInterface
           conversation={currentConversation}
           onSendMessage={handleSendMessage}
           isLoading={isLoading}
         />
-        <RightSidebar />
+        <RightSidebar
+          isOpen={rightSidebarOpen}
+          onClose={() => setRightSidebarOpen(false)}
+        />
       </div>
     </ThemeProvider>
   );

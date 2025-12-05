@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import './Stage1.css';
 
 export default function Stage1({ responses }) {
   const [activeTab, setActiveTab] = useState(0);

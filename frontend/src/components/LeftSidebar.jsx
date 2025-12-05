@@ -1,14 +1,14 @@
-import './LeftSidebar.css';
-
 export default function LeftSidebar({
   conversations,
   currentConversationId,
   onSelectConversation,
   onDeleteConversation,
   onHomeClick,
+  isOpen,
+  onClose,
 }) {
   return (
-    <div className="sidebar">
+    <div className={`sidebar ${isOpen ? 'sidebar-open' : ''}`}>
       <div className="sidebar-header">
         <h1 className="sidebar-title" onClick={onHomeClick}>
           LLM Council

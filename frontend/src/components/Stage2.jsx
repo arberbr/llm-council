@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import './Stage2.css';
 
 function deAnonymizeText(text, labelToModel) {
   if (!labelToModel) return text;

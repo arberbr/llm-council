@@ -1,4 +1,3 @@
-import './RightSidebar.css';
 import { useTheme } from '../context/ThemeContext';
 import { useState, useEffect } from 'react';
 
@@ -24,7 +23,7 @@ const DEFAULT_COUNCIL_MODELS = [
 
 const DEFAULT_CHAIRMAN_MODEL = 'google/gemini-3-pro-preview';
 
-export default function RightSidebar() {
+export default function RightSidebar({ isOpen, onClose }) {
     const { theme, toggleTheme } = useTheme();
     const [councilModels, setCouncilModels] = useState(() => {
         const saved = localStorage.getItem('councilModels');
@@ -90,7 +89,7 @@ export default function RightSidebar() {
     const validationErrors = validateSettings();
 
     return (
-        <div className="right-sidebar">
+        <div className={`right-sidebar ${isOpen ? 'sidebar-open' : ''}`}>
             <div className="right-sidebar-content">
                 {/* Theme Toggle */}
                 <div className="settings-section">
@@ -144,7 +143,8 @@ export default function RightSidebar() {
                 {/* Council Models Selection */}
                 <div className="settings-section">
                     <div className="settings-section-header">
-                        <h3 className="settings-section-title">Council Models</h3>                    </div>
+                        <h3 className="settings-section-title">Council Models</h3>
+                    </div>
                     <div className="model-selection-list">
                         {AVAILABLE_MODELS.map((model) => (
                             <label key={model.id} className="model-checkbox-label">
