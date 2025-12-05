@@ -15,7 +15,6 @@ function App() {
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [currentConversation, setCurrentConversation] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isRightSidebarVisible, setIsRightSidebarVisible] = useState(true);
 
   // Load conversations on mount
   useEffect(() => {
@@ -356,10 +355,8 @@ function App() {
           conversation={currentConversation}
           onSendMessage={handleSendMessage}
           isLoading={isLoading}
-          isRightSidebarVisible={isRightSidebarVisible}
-          onToggleRightSidebar={() => setIsRightSidebarVisible(!isRightSidebarVisible)}
         />
-        <RightSidebar isVisible={isRightSidebarVisible} />
+        <RightSidebar />
       </div>
     </ThemeProvider>
   );

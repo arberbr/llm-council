@@ -24,7 +24,7 @@ const DEFAULT_COUNCIL_MODELS = [
 
 const DEFAULT_CHAIRMAN_MODEL = 'google/gemini-3-pro-preview';
 
-export default function RightSidebar({ isVisible }) {
+export default function RightSidebar() {
     const { theme, toggleTheme } = useTheme();
     const [councilModels, setCouncilModels] = useState(() => {
         const saved = localStorage.getItem('councilModels');
@@ -90,7 +90,7 @@ export default function RightSidebar({ isVisible }) {
     const validationErrors = validateSettings();
 
     return (
-        <div className={`right-sidebar ${!isVisible ? 'sidebar-hidden' : ''}`}>
+        <div className="right-sidebar">
             <div className="right-sidebar-content">
                 {/* Theme Toggle */}
                 <div className="settings-section">

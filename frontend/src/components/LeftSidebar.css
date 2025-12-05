@@ -1,11 +1,12 @@
 .sidebar {
   width: calc(var(--size-base) * 70);
-  min-width: calc(var(--size-base) * 70);
   flex-shrink: 0;
   background: var(--bg-secondary);
   display: flex;
   flex-direction: column;
   height: 100vh;
+  transition: width 0.3s ease;
+  position: relative;
 }
 
 .sidebar-header {
@@ -14,6 +15,7 @@
   align-items: center;
   justify-content: flex-start;
   gap: calc(var(--size-base) * 3);
+  min-width: calc(var(--size-base) * 70);
 }
 
 .sidebar-header h1 {
@@ -52,6 +54,7 @@
   flex: 1;
   overflow-y: auto;
   padding: calc(var(--size-base) * 2);
+  min-width: calc(var(--size-base) * 70);
 }
 
 .no-conversations {
