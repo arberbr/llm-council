@@ -4,14 +4,12 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from typing import List, Dict, Any
-import uuid
+from typing import List
 import json
 import asyncio
 import logging
 
-from . import storage
-from .council import run_full_council, generate_conversation_title, stage1_collect_responses, stage2_collect_rankings, stage3_synthesize_final, calculate_aggregate_rankings
+from .council import generate_conversation_title, stage1_collect_responses, stage2_collect_rankings, stage3_synthesize_final, calculate_aggregate_rankings
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -29,20 +27,16 @@ app.add_middleware(
 )
 
 
-class CreateConversationRequest(BaseModel):
-    """Request to create a new conversation."""
-    pass
-
-
-class SendMessageRequest(BaseModel):
-    """Request to send a message in a conversation."""
+class ProcessMessageRequest(BaseModel):
+    """Request to process a message through the council."""
     content: str
     api_key: str | None = None
     council_models: List[str] | None = None
     chairman_model: str | None = None
+    generate_title: bool = False  # Whether to generate a title for this message
 
 
-def validate_settings(request: SendMessageRequest):
+def validate_settings(request: ProcessMessageRequest):
     """Validate that required settings are provided."""
     errors = []
     
@@ -63,161 +57,43 @@ def validate_settings(request: SendMessageRequest):
     return True
 
 
-class ConversationMetadata(BaseModel):
-    """Conversation metadata for list view."""
-    id: str
-    created_at: str
-    title: str
-    message_count: int
-
-
-class Conversation(BaseModel):
-    """Full conversation with all messages."""
-    id: str
-    created_at: str
-    title: str
-    messages: List[Dict[str, Any]]
-
-
 @app.get("/")
 async def root():
     """Health check endpoint."""
     return {"status": "ok", "service": "LLM Council API"}
 
 
-@app.get("/api/conversations", response_model=List[ConversationMetadata])
-async def list_conversations():
-    """List all conversations (metadata only)."""
-    return storage.list_conversations()
-
-
-@app.post("/api/conversations", response_model=Conversation)
-async def create_conversation(request: CreateConversationRequest):
-    """Create a new conversation."""
-    conversation_id = str(uuid.uuid4())
-    conversation = storage.create_conversation(conversation_id)
-    return conversation
-
-
-@app.get("/api/conversations/{conversation_id}", response_model=Conversation)
-async def get_conversation(conversation_id: str):
-    """Get a specific conversation with all its messages."""
-    conversation = storage.get_conversation(conversation_id)
-    if conversation is None:
-        raise HTTPException(status_code=404, detail="Conversation not found")
-    return conversation
-
-
-@app.delete("/api/conversations/{conversation_id}")
-async def delete_conversation(conversation_id: str):
-    """Delete a specific conversation."""
-    deleted = storage.delete_conversation(conversation_id)
-    if not deleted:
-        raise HTTPException(status_code=404, detail="Conversation not found")
-    return {"status": "deleted", "id": conversation_id}
-
-
-@app.post("/api/conversations/{conversation_id}/message")
-async def send_message(conversation_id: str, request: SendMessageRequest):
+@app.post("/api/council/process")
+async def process_message_stream(request: ProcessMessageRequest):
     """
-    Send a message and run the 3-stage council process.
-    Returns the complete response with all stages.
-    """
-    # Check if conversation exists
-    conversation = storage.get_conversation(conversation_id)
-    if conversation is None:
-        raise HTTPException(status_code=404, detail="Conversation not found")
-
-    # Check if this is the first message
-    is_first_message = len(conversation["messages"]) == 0
-
-    # Add user message
-    storage.add_user_message(conversation_id, request.content)
-
-    # Validate settings
-    validate_settings(request)
-    
-    # Extract settings from request
-    api_key = request.api_key
-    council_models = request.council_models
-    chairman_model = request.chairman_model
-    
-    # Debug logging
-    logger.info(f"Received settings - api_key: {'***' if api_key else None}, council_models: {council_models}, chairman_model: {chairman_model}")
-    logger.info(f"Request body keys: {request.model_dump().keys()}")
-
-    # If this is the first message, generate a title
-    if is_first_message:
-        title = await generate_conversation_title(request.content, api_key=api_key)
-        storage.update_conversation_title(conversation_id, title)
-
-    # Run the 3-stage council process
-    stage1_results, stage2_results, stage3_result, metadata = await run_full_council(
-        request.content,
-        council_models=council_models,
-        chairman_model=chairman_model,
-        api_key=api_key
-    )
-
-    # Add assistant message with all stages
-    storage.add_assistant_message(
-        conversation_id,
-        stage1_results,
-        stage2_results,
-        stage3_result
-    )
-
-    # Return the complete response with metadata
-    return {
-        "stage1": stage1_results,
-        "stage2": stage2_results,
-        "stage3": stage3_result,
-        "metadata": metadata
-    }
-
-
-@app.post("/api/conversations/{conversation_id}/message/stream")
-async def send_message_stream(conversation_id: str, request: SendMessageRequest):
-    """
-    Send a message and stream the 3-stage council process.
+    Process a message through the 3-stage council process.
     Returns Server-Sent Events as each stage completes.
+    
+    This is a stateless endpoint - it does not store anything.
+    The client is responsible for storing conversations.
     """
     # Validate settings first (before creating the generator)
     validate_settings(request)
     
     # Debug: Log the request immediately when received
     logger.info("=" * 50)
-    logger.info(f"STREAM REQUEST RECEIVED for conversation {conversation_id}")
-    logger.info(f"Request model dump: {request.model_dump()}")
+    logger.info("COUNCIL PROCESS REQUEST RECEIVED")
     logger.info(f"api_key present: {request.api_key is not None}")
     logger.info(f"council_models: {request.council_models}")
     logger.info(f"chairman_model: {request.chairman_model}")
+    logger.info(f"generate_title: {request.generate_title}")
     logger.info("=" * 50)
-    
-    # Check if conversation exists
-    conversation = storage.get_conversation(conversation_id)
-    if conversation is None:
-        raise HTTPException(status_code=404, detail="Conversation not found")
-
-    # Check if this is the first message
-    is_first_message = len(conversation["messages"]) == 0
 
     async def event_generator():
         try:
-            # Add user message
-            storage.add_user_message(conversation_id, request.content)
-            
             # Extract settings from request
             api_key = request.api_key
             council_models = request.council_models
             chairman_model = request.chairman_model
-            
-            # Debug logging
-            logger.info(f"Inside event_generator - api_key: {'***' if api_key else None}, council_models: {council_models}, chairman_model: {chairman_model}")
 
-            # Start title generation in parallel (don't await yet)
+            # Start title generation in parallel if requested
             title_task = None
-            if is_first_message:
+            if request.generate_title:
                 title_task = asyncio.create_task(generate_conversation_title(request.content, api_key=api_key))
 
             # Stage 1: Collect responses
@@ -239,21 +115,13 @@ async def send_message_stream(conversation_id: str, request: SendMessageRequest)
             # Wait for title generation if it was started
             if title_task:
                 title = await title_task
-                storage.update_conversation_title(conversation_id, title)
                 yield f"data: {json.dumps({'type': 'title_complete', 'data': {'title': title}})}\n\n"
-
-            # Save complete assistant message
-            storage.add_assistant_message(
-                conversation_id,
-                stage1_results,
-                stage2_results,
-                stage3_result
-            )
 
             # Send completion event
             yield f"data: {json.dumps({'type': 'complete'})}\n\n"
 
         except Exception as e:
+            logger.error(f"Error in council process: {e}")
             # Send error event
             yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
 
@@ -265,6 +133,19 @@ async def send_message_stream(conversation_id: str, request: SendMessageRequest)
             "Connection": "keep-alive",
         }
     )
+
+
+@app.post("/api/council/generate-title")
+async def generate_title(request: ProcessMessageRequest):
+    """
+    Generate a title for a conversation based on the first message.
+    This is a utility endpoint for title generation.
+    """
+    if not request.api_key or not request.api_key.strip():
+        raise HTTPException(status_code=400, detail="OpenRouter API key is required")
+    
+    title = await generate_conversation_title(request.content, api_key=request.api_key)
+    return {"title": title}
 
 
 if __name__ == "__main__":

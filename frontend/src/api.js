@@ -1,155 +1,143 @@
 /**
- * API client for the LLM Council backend.
+ * API client for the LLM Council.
+ * Conversation storage is handled via localStorage.
+ * Backend is only used for LLM council processing.
  */
+
+import {
+  listConversations,
+  createConversation,
+  getConversation,
+  deleteConversation,
+  updateConversationTitle,
+  addUserMessage,
+  addAssistantMessage,
+} from './storage';
 
 // Use VITE_REACT_BACKEND_API environment variable, fallback to localhost for development
 const API_BASE = import.meta.env.VITE_REACT_BACKEND_API || 'http://localhost:8001';
 
 export const api = {
   /**
-   * List all conversations.
+   * List all conversations from localStorage.
    */
-  async listConversations() {
-    const response = await fetch(`${API_BASE}/api/conversations`);
-    if (!response.ok) {
-      throw new Error('Failed to list conversations');
-    }
-    return response.json();
+  listConversations() {
+    return Promise.resolve(listConversations());
   },
 
   /**
-   * Create a new conversation.
+   * Create a new conversation in localStorage.
    */
-  async createConversation() {
-    const response = await fetch(`${API_BASE}/api/conversations`, {
+  createConversation() {
+    return Promise.resolve(createConversation());
+  },
+
+  /**
+   * Get a specific conversation from localStorage.
+   */
+  getConversation(conversationId) {
+    const conv = getConversation(conversationId);
+    if (!conv) {
+      return Promise.reject(new Error('Conversation not found'));
+    }
+    return Promise.resolve(conv);
+  },
+
+  /**
+   * Delete a specific conversation from localStorage.
+   */
+  deleteConversation(conversationId) {
+    const deleted = deleteConversation(conversationId);
+    if (!deleted) {
+      return Promise.reject(new Error('Conversation not found'));
+    }
+    return Promise.resolve({ status: 'deleted', id: conversationId });
+  },
+
+  /**
+   * Update conversation title in localStorage.
+   */
+  updateConversationTitle(conversationId, title) {
+    try {
+      const conv = updateConversationTitle(conversationId, title);
+      return Promise.resolve(conv);
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  },
+
+  /**
+   * Save user message to localStorage.
+   */
+  saveUserMessage(conversationId, content) {
+    try {
+      const conv = addUserMessage(conversationId, content);
+      return Promise.resolve(conv);
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  },
+
+  /**
+   * Save assistant message to localStorage.
+   */
+  saveAssistantMessage(conversationId, stage1, stage2, stage3, metadata = null) {
+    try {
+      const conv = addAssistantMessage(conversationId, stage1, stage2, stage3, metadata);
+      return Promise.resolve(conv);
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  },
+
+  /**
+   * Send a message and receive streaming updates from the backend.
+   * Storage is handled client-side; backend only processes LLM calls.
+   * @param {string} conversationId - The conversation ID (for reference only, not sent to backend)
+   * @param {string} content - The message content
+   * @param {function} onEvent - Callback function for each event: (eventType, data) => void
+   * @param {Object} options - Additional options
+   * @param {boolean} options.generateTitle - Whether to generate a title for this message
+   * @returns {Promise<void>}
+   */
+  async sendMessageStream(conversationId, content, onEvent, options = {}) {
+    // Read settings from localStorage
+    const openRouterApiKey = localStorage.getItem('openRouterApiKey');
+    const councilModelsStr = localStorage.getItem('councilModels');
+    const chairmanModel = localStorage.getItem('chairmanModel');
+
+    const requestBody = { content };
+    if (openRouterApiKey && openRouterApiKey.trim()) {
+      requestBody.api_key = openRouterApiKey;
+    }
+    if (councilModelsStr) {
+      try {
+        const councilModels = JSON.parse(councilModelsStr);
+        if (councilModels && Array.isArray(councilModels) && councilModels.length > 0) {
+          requestBody.council_models = councilModels;
+        }
+      } catch (e) {
+        console.error('Failed to parse councilModels:', e);
+      }
+    }
+    if (chairmanModel && chairmanModel.trim()) {
+      requestBody.chairman_model = chairmanModel;
+    }
+    if (options.generateTitle) {
+      requestBody.generate_title = true;
+    }
+
+    const response = await fetch(`${API_BASE}/api/council/process`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({}),
+      body: JSON.stringify(requestBody),
     });
-    if (!response.ok) {
-      throw new Error('Failed to create conversation');
-    }
-    return response.json();
-  },
-
-  /**
-   * Get a specific conversation.
-   */
-  async getConversation(conversationId) {
-    const response = await fetch(
-      `${API_BASE}/api/conversations/${conversationId}`
-    );
-    if (!response.ok) {
-      throw new Error('Failed to get conversation');
-    }
-    return response.json();
-  },
-
-  /**
-   * Delete a specific conversation.
-   */
-  async deleteConversation(conversationId) {
-    const response = await fetch(
-      `${API_BASE}/api/conversations/${conversationId}`,
-      {
-        method: 'DELETE',
-      }
-    );
-    if (!response.ok) {
-      throw new Error('Failed to delete conversation');
-    }
-    return response.json();
-  },
-
-  /**
-   * Send a message in a conversation.
-   */
-  async sendMessage(conversationId, content) {
-    // Read settings from localStorage
-    const openRouterApiKey = localStorage.getItem('openRouterApiKey');
-    const councilModelsStr = localStorage.getItem('councilModels');
-    const chairmanModel = localStorage.getItem('chairmanModel');
-
-    const requestBody = { content };
-    if (openRouterApiKey && openRouterApiKey.trim()) {
-      requestBody.api_key = openRouterApiKey;
-    }
-    if (councilModelsStr) {
-      try {
-        const councilModels = JSON.parse(councilModelsStr);
-        if (councilModels && Array.isArray(councilModels) && councilModels.length > 0) {
-          requestBody.council_models = councilModels;
-        }
-      } catch (e) {
-        console.error('Failed to parse councilModels:', e);
-      }
-    }
-    if (chairmanModel && chairmanModel.trim()) {
-      requestBody.chairman_model = chairmanModel;
-    }
-
-    const response = await fetch(
-      `${API_BASE}/api/conversations/${conversationId}/message`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      }
-    );
-    if (!response.ok) {
-      throw new Error('Failed to send message');
-    }
-    return response.json();
-  },
-
-  /**
-   * Send a message and receive streaming updates.
-   * @param {string} conversationId - The conversation ID
-   * @param {string} content - The message content
-   * @param {function} onEvent - Callback function for each event: (eventType, data) => void
-   * @returns {Promise<void>}
-   */
-  async sendMessageStream(conversationId, content, onEvent) {
-    // Read settings from localStorage
-    const openRouterApiKey = localStorage.getItem('openRouterApiKey');
-    const councilModelsStr = localStorage.getItem('councilModels');
-    const chairmanModel = localStorage.getItem('chairmanModel');
-
-    const requestBody = { content };
-    if (openRouterApiKey && openRouterApiKey.trim()) {
-      requestBody.api_key = openRouterApiKey;
-    }
-    if (councilModelsStr) {
-      try {
-        const councilModels = JSON.parse(councilModelsStr);
-        if (councilModels && Array.isArray(councilModels) && councilModels.length > 0) {
-          requestBody.council_models = councilModels;
-        }
-      } catch (e) {
-        console.error('Failed to parse councilModels:', e);
-      }
-    }
-    if (chairmanModel && chairmanModel.trim()) {
-      requestBody.chairman_model = chairmanModel;
-    }
-
-    const response = await fetch(
-      `${API_BASE}/api/conversations/${conversationId}/message/stream`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      }
-    );
 
     if (!response.ok) {
-      throw new Error('Failed to send message');
+      const errorText = await response.text();
+      throw new Error(errorText || 'Failed to process message');
     }
 
     const reader = response.body.getReader();

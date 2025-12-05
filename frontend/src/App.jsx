@@ -65,7 +65,7 @@ function App() {
     try {
       const newConv = await api.createConversation();
       setConversations([
-        { id: newConv.id, created_at: newConv.created_at, message_count: 0 },
+        { id: newConv.id, created_at: newConv.created_at, title: newConv.title, message_count: 0 },
         ...conversations,
       ]);
       navigate(`/${newConv.id}`);
@@ -137,16 +137,25 @@ function App() {
     }
 
     setIsLoading(true);
+    
+    // Track collected stage data for saving to localStorage
+    let collectedStage1 = null;
+    let collectedStage2 = null;
+    let collectedStage3 = null;
+    let collectedMetadata = null;
+    
     try {
       let convId = currentConversationId;
+      let isFirstMessage = false;
 
       // If there is no active conversation (e.g., on the homepage), create one first
       if (!convId) {
         const newConv = await api.createConversation();
         convId = newConv.id;
+        isFirstMessage = true;
 
         setConversations((prev) => [
-          { id: newConv.id, created_at: newConv.created_at, message_count: 0 },
+          { id: newConv.id, created_at: newConv.created_at, title: newConv.title, message_count: 0 },
           ...prev,
         ]);
 
@@ -162,10 +171,17 @@ function App() {
 
         // Navigate after setting state
         navigate(`/${newConv.id}`, { replace: true });
+      } else {
+        // Check if this is the first message in an existing conversation
+        const existingConv = await api.getConversation(convId);
+        isFirstMessage = !existingConv.messages || existingConv.messages.length === 0;
       }
 
       // Track which conversation we're sending to
       sendingToConversationIdRef.current = convId;
+
+      // Save user message to localStorage
+      api.saveUserMessage(convId, content);
 
       // Optimistically add user message to UI
       const userMessage = { role: 'user', content };
@@ -194,7 +210,7 @@ function App() {
         messages: [...(prev?.messages ?? []), assistantMessage],
       }));
 
-      // Send message with streaming
+      // Send message with streaming (request title generation for first message)
       await api.sendMessageStream(convId, content, (eventType, event) => {
         switch (eventType) {
           case 'stage1_start':
@@ -207,6 +223,7 @@ function App() {
             break;
 
           case 'stage1_complete':
+            collectedStage1 = event.data;
             setCurrentConversation((prev) => {
               const messages = [...prev.messages];
               const lastMsg = messages[messages.length - 1];
@@ -226,6 +243,8 @@ function App() {
             break;
 
           case 'stage2_complete':
+            collectedStage2 = event.data;
+            collectedMetadata = event.metadata;
             setCurrentConversation((prev) => {
               const messages = [...prev.messages];
               const lastMsg = messages[messages.length - 1];
@@ -246,6 +265,7 @@ function App() {
             break;
 
           case 'stage3_complete':
+            collectedStage3 = event.data;
             setCurrentConversation((prev) => {
               const messages = [...prev.messages];
               const lastMsg = messages[messages.length - 1];
@@ -256,15 +276,28 @@ function App() {
             break;
 
           case 'title_complete':
-            // Reload conversations to get updated title
-            loadConversations();
+            // Update title in localStorage and refresh conversations list
+            if (event.data && event.data.title) {
+              api.updateConversationTitle(convId, event.data.title);
+              setCurrentConversation((prev) => ({
+                ...prev,
+                title: event.data.title,
+              }));
+              loadConversations();
+            }
             break;
 
           case 'complete':
-            // Stream complete, reload conversations list
+            // Save the complete assistant message to localStorage
+            if (collectedStage1 && collectedStage2 && collectedStage3) {
+              api.saveAssistantMessage(convId, collectedStage1, collectedStage2, collectedStage3, collectedMetadata);
+            }
+            
+            // Reload conversations list to get updated message count
             loadConversations();
             setIsLoading(false);
             sendingToConversationIdRef.current = null;
+            
             // If we navigated away during sending, ensure the current conversation is loaded
             if (conversationId && conversationId !== convId) {
               loadConversation(conversationId);
@@ -284,7 +317,7 @@ function App() {
           default:
             console.log('Unknown event type:', eventType);
         }
-      });
+      }, { generateTitle: isFirstMessage });
     } catch (error) {
       console.error('Failed to send message:', error);
       // Remove optimistic messages on error (only if we're still on the same conversation)
