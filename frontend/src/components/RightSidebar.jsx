@@ -3,14 +3,11 @@ import { useState, useEffect } from 'react';
 
 // Common OpenRouter models - can be expanded
 const AVAILABLE_MODELS = [
-    { id: 'anthropic/claude-haiku-4.5', name: 'Anthropic: Claude Haiku 4.5' },
     { id: 'anthropic/claude-sonnet-4.5', name: 'Anthropic: Claude Sonnet 4.5' },
-    { id: 'anthropic/claude-opus-4.5', name: 'Anthropic: Claude Opus 4.5' },
     { id: 'deepseek/deepseek-v3.2', name: 'DeepSeek: DeepSeek V3.2' },
     { id: 'google/gemini-3-pro-preview', name: 'Google: Gemini 3 Pro' },
     { id: 'openai/gpt-5.1', name: 'OpenAI: GPT-5.1' },
     { id: 'x-ai/grok-4', name: 'xAI: Grok 4' },
-    { id: 'qwen/qwen3-coder-plus', name: 'Qwen: Qwen3 Coder Plus' },
     { id: 'mistralai/mistral-medium-3.1', name: 'Mistral: Mistral Medium 3.1' },
 ];
 
