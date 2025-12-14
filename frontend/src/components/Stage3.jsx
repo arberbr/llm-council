@@ -1,3 +1,5 @@
+'use client';
+
 import ReactMarkdown from 'react-markdown';
 
 export default function Stage3({ finalResponse }) {

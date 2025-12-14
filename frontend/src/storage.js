@@ -10,6 +10,10 @@ const STORAGE_KEY = 'llm-council-conversations';
  * @returns {Object} Map of conversation IDs to conversation objects
  */
 function getAllConversations() {
+  // Guard against SSR where localStorage is not available
+  if (typeof window === 'undefined') {
+    return {};
+  }
   try {
     const data = localStorage.getItem(STORAGE_KEY);
     return data ? JSON.parse(data) : {};
@@ -24,6 +28,10 @@ function getAllConversations() {
  * @param {Object} conversations - Map of conversation IDs to conversation objects
  */
 function saveAllConversations(conversations) {
+  // Guard against SSR where localStorage is not available
+  if (typeof window === 'undefined') {
+    return;
+  }
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
   } catch (e) {

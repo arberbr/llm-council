@@ -1,0 +1,378 @@
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import LeftSidebar from '@/components/LeftSidebar';
+import RightSidebar from '@/components/RightSidebar';
+import ChatInterface from '@/components/ChatInterface';
+import { api } from '@/api';
+
+// Force dynamic rendering to prevent SSR issues with localStorage
+export const dynamic = 'force-dynamic';
+
+export default function ConversationPage() {
+  const router = useRouter();
+  const params = useParams();
+  const conversationId = params.conversationId;
+  const sendingToConversationIdRef = useRef(null);
+
+  const [conversations, setConversations] = useState([]);
+  const [currentConversationId, setCurrentConversationId] = useState(null);
+  const [currentConversation, setCurrentConversation] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Sidebar visibility state
+  const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
+  const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
+
+  // Load conversations on mount
+  useEffect(() => {
+    loadConversations();
+  }, []);
+
+  // Sync URL param to currently selected conversation and load it
+  useEffect(() => {
+    if (conversationId) {
+      setCurrentConversationId(conversationId);
+      const shouldSkipLoad =
+        (currentConversation && currentConversation.id === conversationId) ||
+        (sendingToConversationIdRef.current === conversationId);
+
+      if (!shouldSkipLoad) {
+        loadConversation(conversationId);
+      }
+    } else {
+      setCurrentConversationId(null);
+      setCurrentConversation(null);
+    }
+  }, [conversationId]);
+
+  const loadConversations = async () => {
+    try {
+      const convs = await api.listConversations();
+      setConversations(convs);
+    } catch (error) {
+      console.error('Failed to load conversations:', error);
+    }
+  };
+
+  const loadConversation = async (id) => {
+    try {
+      const conv = await api.getConversation(id);
+      setCurrentConversation(conv);
+    } catch (error) {
+      console.error('Failed to load conversation:', error);
+    }
+  };
+
+  const handleNewConversation = async () => {
+    try {
+      const newConv = await api.createConversation();
+      setConversations([
+        { id: newConv.id, created_at: newConv.created_at, title: newConv.title, message_count: 0 },
+        ...conversations,
+      ]);
+      router.push(`/${newConv.id}`);
+    } catch (error) {
+      console.error('Failed to create conversation:', error);
+    }
+  };
+
+  const handleSelectConversation = (id) => {
+    router.push(`/${id}`);
+  };
+
+  const handleHomeClick = () => {
+    router.push('/');
+  };
+
+  const handleDeleteConversation = async (id) => {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this conversation? This cannot be undone.'
+    );
+    if (!confirmed) return;
+
+    try {
+      await api.deleteConversation(id);
+
+      setConversations((prev) => prev.filter((c) => c.id !== id));
+
+      if (currentConversationId === id) {
+        // If we deleted the currently active conversation, go back to the home view
+        router.push('/');
+      }
+    } catch (error) {
+      console.error('Failed to delete conversation:', error);
+    }
+  };
+
+  const handleSendMessage = async (content) => {
+    // Validate settings before sending
+    const openRouterApiKey = localStorage.getItem('openRouterApiKey');
+    const councilModelsStr = localStorage.getItem('councilModels');
+    const chairmanModel = localStorage.getItem('chairmanModel');
+
+    const errors = [];
+
+    if (!openRouterApiKey || !openRouterApiKey.trim()) {
+      errors.push('OpenRouter API key is required. Please set it in the settings.');
+    }
+
+    if (!chairmanModel || !chairmanModel.trim()) {
+      errors.push('Chairman model must be selected. Please select one in the settings.');
+    }
+
+    let councilModels = [];
+    if (councilModelsStr) {
+      try {
+        councilModels = JSON.parse(councilModelsStr);
+      } catch (e) {
+        errors.push('Invalid council models configuration.');
+      }
+    }
+
+    if (!councilModels || councilModels.length < 2) {
+      errors.push('At least 2 council models must be selected. Please select at least 2 in the settings.');
+    }
+
+    if (errors.length > 0) {
+      alert('Configuration Error:\n\n' + errors.join('\n'));
+      return;
+    }
+
+    setIsLoading(true);
+    
+    // Track collected stage data for saving to localStorage
+    let collectedStage1 = null;
+    let collectedStage2 = null;
+    let collectedStage3 = null;
+    let collectedMetadata = null;
+    
+    try {
+      let convId = currentConversationId;
+      let isFirstMessage = false;
+
+      // Check if this is the first message in an existing conversation
+      const existingConv = await api.getConversation(convId);
+      isFirstMessage = !existingConv.messages || existingConv.messages.length === 0;
+
+      // Track which conversation we're sending to
+      sendingToConversationIdRef.current = convId;
+
+      // Save user message to localStorage
+      api.saveUserMessage(convId, content);
+
+      // Optimistically add user message to UI
+      const userMessage = { role: 'user', content };
+      setCurrentConversation((prev) => ({
+        ...prev,
+        messages: [...(prev?.messages ?? []), userMessage],
+      }));
+
+      // Create a partial assistant message that will be updated progressively
+      const assistantMessage = {
+        role: 'assistant',
+        stage1: null,
+        stage2: null,
+        stage3: null,
+        metadata: null,
+        loading: {
+          stage1: false,
+          stage2: false,
+          stage3: false,
+        },
+      };
+
+      // Add the partial assistant message
+      setCurrentConversation((prev) => ({
+        ...prev,
+        messages: [...(prev?.messages ?? []), assistantMessage],
+      }));
+
+      // Send message with streaming (request title generation for first message)
+      await api.sendMessageStream(convId, content, (eventType, event) => {
+        switch (eventType) {
+          case 'stage1_start':
+            setCurrentConversation((prev) => {
+              const messages = [...prev.messages];
+              const lastMsg = messages[messages.length - 1];
+              lastMsg.loading.stage1 = true;
+              return { ...prev, messages };
+            });
+            break;
+
+          case 'stage1_complete':
+            collectedStage1 = event.data;
+            setCurrentConversation((prev) => {
+              const messages = [...prev.messages];
+              const lastMsg = messages[messages.length - 1];
+              lastMsg.stage1 = event.data;
+              lastMsg.loading.stage1 = false;
+              return { ...prev, messages };
+            });
+            break;
+
+          case 'stage2_start':
+            setCurrentConversation((prev) => {
+              const messages = [...prev.messages];
+              const lastMsg = messages[messages.length - 1];
+              lastMsg.loading.stage2 = true;
+              return { ...prev, messages };
+            });
+            break;
+
+          case 'stage2_complete':
+            collectedStage2 = event.data;
+            collectedMetadata = event.metadata;
+            setCurrentConversation((prev) => {
+              const messages = [...prev.messages];
+              const lastMsg = messages[messages.length - 1];
+              lastMsg.stage2 = event.data;
+              lastMsg.metadata = event.metadata;
+              lastMsg.loading.stage2 = false;
+              return { ...prev, messages };
+            });
+            break;
+
+          case 'stage3_start':
+            setCurrentConversation((prev) => {
+              const messages = [...prev.messages];
+              const lastMsg = messages[messages.length - 1];
+              lastMsg.loading.stage3 = true;
+              return { ...prev, messages };
+            });
+            break;
+
+          case 'stage3_complete':
+            collectedStage3 = event.data;
+            setCurrentConversation((prev) => {
+              const messages = [...prev.messages];
+              const lastMsg = messages[messages.length - 1];
+              lastMsg.stage3 = event.data;
+              lastMsg.loading.stage3 = false;
+              return { ...prev, messages };
+            });
+            break;
+
+          case 'title_complete':
+            // Update title in localStorage and refresh conversations list
+            if (event.data && event.data.title) {
+              api.updateConversationTitle(convId, event.data.title);
+              setCurrentConversation((prev) => ({
+                ...prev,
+                title: event.data.title,
+              }));
+              loadConversations();
+            }
+            break;
+
+          case 'complete':
+            // Save the complete assistant message to localStorage
+            if (collectedStage1 && collectedStage2 && collectedStage3) {
+              api.saveAssistantMessage(convId, collectedStage1, collectedStage2, collectedStage3, collectedMetadata);
+            }
+            
+            // Reload conversations list to get updated message count
+            loadConversations();
+            setIsLoading(false);
+            sendingToConversationIdRef.current = null;
+            
+            // If we navigated away during sending, ensure the current conversation is loaded
+            if (conversationId && conversationId !== convId) {
+              loadConversation(conversationId);
+            }
+            break;
+
+          case 'error':
+            console.error('Stream error:', event.message);
+            setIsLoading(false);
+            sendingToConversationIdRef.current = null;
+            // If we navigated away during sending, ensure the current conversation is loaded
+            if (conversationId && conversationId !== convId) {
+              loadConversation(conversationId);
+            }
+            break;
+
+          default:
+            console.log('Unknown event type:', eventType);
+        }
+      }, { generateTitle: isFirstMessage });
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      // Remove optimistic messages on error (only if we're still on the same conversation)
+      const wasSendingTo = sendingToConversationIdRef.current;
+      sendingToConversationIdRef.current = null;
+
+      // Only remove optimistic messages if we're still viewing the conversation we were sending to
+      if (wasSendingTo && currentConversationId === wasSendingTo) {
+        setCurrentConversation((prev) => ({
+          ...prev,
+          messages: prev?.messages?.slice(0, -2) ?? [],
+        }));
+      }
+
+      setIsLoading(false);
+
+      // If we navigated away during sending, ensure the current conversation is loaded
+      if (conversationId && wasSendingTo && conversationId !== wasSendingTo) {
+        loadConversation(conversationId);
+      }
+    }
+  };
+
+  return (
+    <div className="app">
+      {/* Left sidebar toggle button */}
+      <button
+        className={`sidebar-toggle sidebar-toggle-left ${leftSidebarOpen ? 'active' : ''}`}
+        onClick={() => setLeftSidebarOpen(!leftSidebarOpen)}
+        title="Toggle conversations"
+      >
+        ☰
+      </button>
+      
+      {/* Right sidebar toggle button */}
+      <button
+        className={`sidebar-toggle sidebar-toggle-right ${rightSidebarOpen ? 'active' : ''}`}
+        onClick={() => setRightSidebarOpen(!rightSidebarOpen)}
+        title="Toggle settings"
+      >
+        ⚙
+      </button>
+      
+      {/* Overlay for mobile */}
+      {(leftSidebarOpen || rightSidebarOpen) && (
+        <div
+          className="sidebar-overlay"
+          onClick={() => {
+            setLeftSidebarOpen(false);
+            setRightSidebarOpen(false);
+          }}
+        />
+      )}
+      
+      <LeftSidebar
+        conversations={conversations}
+        currentConversationId={currentConversationId}
+        onSelectConversation={(id) => {
+          handleSelectConversation(id);
+          setLeftSidebarOpen(false);
+        }}
+        onNewConversation={handleNewConversation}
+        onDeleteConversation={handleDeleteConversation}
+        onHomeClick={handleHomeClick}
+        isOpen={leftSidebarOpen}
+        onClose={() => setLeftSidebarOpen(false)}
+      />
+      <ChatInterface
+        conversation={currentConversation}
+        onSendMessage={handleSendMessage}
+        isLoading={isLoading}
+      />
+      <RightSidebar
+        isOpen={rightSidebarOpen}
+        onClose={() => setRightSidebarOpen(false)}
+      />
+    </div>
+  );
+}

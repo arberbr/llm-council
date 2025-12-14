@@ -1,3 +1,5 @@
+'use client';
+
 import { useTheme } from '../context/ThemeContext';
 import { useState, useEffect } from 'react';
 
@@ -23,29 +25,47 @@ const DEFAULT_CHAIRMAN_MODEL = 'google/gemini-3-pro-preview';
 export default function RightSidebar({ isOpen, onClose }) {
     const { theme, toggleTheme } = useTheme();
     const [councilModels, setCouncilModels] = useState(() => {
+        // Guard against SSR where localStorage is not available
+        if (typeof window === 'undefined') {
+            return DEFAULT_COUNCIL_MODELS;
+        }
         const saved = localStorage.getItem('councilModels');
         return saved ? JSON.parse(saved) : DEFAULT_COUNCIL_MODELS;
     });
     const [chairmanModel, setChairmanModel] = useState(() => {
+        // Guard against SSR where localStorage is not available
+        if (typeof window === 'undefined') {
+            return DEFAULT_CHAIRMAN_MODEL;
+        }
         const saved = localStorage.getItem('chairmanModel');
         return saved || DEFAULT_CHAIRMAN_MODEL;
     });
     const [openRouterApiKey, setOpenRouterApiKey] = useState(() => {
+        // Guard against SSR where localStorage is not available
+        if (typeof window === 'undefined') {
+            return '';
+        }
         const saved = localStorage.getItem('openRouterApiKey');
         return saved || '';
     });
 
     // Save to localStorage whenever settings change
     useEffect(() => {
-        localStorage.setItem('councilModels', JSON.stringify(councilModels));
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('councilModels', JSON.stringify(councilModels));
+        }
     }, [councilModels]);
 
     useEffect(() => {
-        localStorage.setItem('chairmanModel', chairmanModel);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('chairmanModel', chairmanModel);
+        }
     }, [chairmanModel]);
 
     useEffect(() => {
-        localStorage.setItem('openRouterApiKey', openRouterApiKey);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('openRouterApiKey', openRouterApiKey);
+        }
     }, [openRouterApiKey]);
 
     const handleCouncilModelToggle = (modelId) => {

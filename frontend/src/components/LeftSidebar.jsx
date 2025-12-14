@@ -1,3 +1,5 @@
+'use client';
+
 export default function LeftSidebar({
   conversations,
   currentConversationId,
@@ -5,7 +7,6 @@ export default function LeftSidebar({
   onDeleteConversation,
   onHomeClick,
   isOpen,
-  onClose,
 }) {
   return (
     <div className={`sidebar ${isOpen ? 'sidebar-open' : ''}`}>

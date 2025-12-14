@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import Stage1 from './Stage1';
@@ -105,26 +107,17 @@ export default function ChatInterface({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Only show input form on homepage (when conversation is null) */}
-      {!conversation && (
-        <form className="input-form" onSubmit={handleSubmit}>
-          <textarea
-            className="message-input"
-            placeholder="Ask your question... (Shift+Enter for new line, Enter to send)"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            disabled={isLoading}
-          />
-          {/* <button
-            type="submit"
-            className="send-button"
-            disabled={(!input.trim() || input.trim().length < 5) || isLoading}
-          >
-            Send
-          </button> */}
-        </form>
-      )}
+      {/* Input form - always visible */}
+      <form className="input-form" onSubmit={handleSubmit}>
+        <textarea
+          className="message-input"
+          placeholder="Ask your question... (Shift+Enter for new line, Enter to send)"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          disabled={isLoading}
+        />
+      </form>
     </div>
   );
 }

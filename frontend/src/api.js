@@ -14,8 +14,9 @@ import {
   addAssistantMessage,
 } from './storage';
 
-// Use VITE_REACT_BACKEND_API environment variable, fallback to localhost for development
-const API_BASE = import.meta.env.VITE_REACT_BACKEND_API || 'http://localhost:8001';
+// Use NEXT_PUBLIC_BACKEND_API environment variable, fallback to localhost for development
+// In Next.js client components, we access env vars via process.env.NEXT_PUBLIC_*
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_API || 'http://localhost:8001';
 
 export const api = {
   /**
