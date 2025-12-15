@@ -6,19 +6,18 @@ const AVAILABLE_MODELS = [
     { id: 'anthropic/claude-sonnet-4.5', name: 'Anthropic: Claude Sonnet 4.5' },
     { id: 'deepseek/deepseek-v3.2', name: 'DeepSeek: DeepSeek V3.2' },
     { id: 'google/gemini-3-pro-preview', name: 'Google: Gemini 3 Pro' },
-    { id: 'openai/gpt-5.1', name: 'OpenAI: GPT-5.1' },
+    { id: 'openai/gpt-5.2', name: 'OpenAI: GPT-5.2' },
     { id: 'x-ai/grok-4', name: 'xAI: Grok 4' },
     { id: 'mistralai/mistral-medium-3.1', name: 'Mistral: Mistral Medium 3.1' },
 ];
 
 const DEFAULT_COUNCIL_MODELS = [
-    'openai/gpt-5.1',
+    'openai/gpt-5.2',
     'google/gemini-3-pro-preview',
     'anthropic/claude-sonnet-4.5',
-    'x-ai/grok-4',
 ];
 
-const DEFAULT_CHAIRMAN_MODEL = 'google/gemini-3-pro-preview';
+const DEFAULT_CHAIRMAN_MODEL = 'openai/gpt-5.2';
 
 export default function RightSidebar({ isOpen, onClose }) {
     const { theme, toggleTheme } = useTheme();

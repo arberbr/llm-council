@@ -15,7 +15,7 @@ import {
 } from './storage';
 
 // Use VITE_REACT_BACKEND_API environment variable, fallback to localhost for development
-const API_BASE = import.meta.env.VITE_REACT_BACKEND_API || 'http://localhost:8001';
+const API_BASE = import.meta.env.VITE_REACT_BACKEND_API || 'http://localhost:3001';
 
 export const api = {
   /**

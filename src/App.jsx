@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import LeftSidebar from './components/LeftSidebar';
 import RightSidebar from './components/RightSidebar';
 import ChatInterface from './components/ChatInterface';
-import { api } from './api';
+import { api } from './libs/api';
 import { ThemeProvider } from './context/ThemeContext';
 
 function App() {

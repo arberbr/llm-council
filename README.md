@@ -1,226 +1,118 @@
-# LLM Council
+## LLM Council
 
-A local web application that creates an "LLM Council" by querying multiple large language models simultaneously, having them evaluate each other's responses, and synthesizing a final answer through a designated Chairman model. Instead of relying on a single AI provider, you can consult multiple models as a council and receive their collective wisdom.
+LLM Council is a full‑stack demo that lets you run a “council” of different LLMs via **OpenRouter** and view a structured, 3‑stage reasoning process:
 
-## How It Works
+- **Stage 1** – each model responds independently  
+- **Stage 2** – models rank and critique each other’s responses  
+- **Stage 3** – a “chairman” model synthesizes a final answer
 
-The application uses a 3-stage deliberation process:
+The frontend is a React + Vite single‑page app; the backend is a NestJS service that orchestrates the council and streams events back to the UI.
 
-### Stage 1: First Opinions
-The user's query is sent to all council members in parallel. Each LLM provides its individual response, displayed in a tabbed interface so you can inspect each model's answer side-by-side.
+---
 
-### Stage 2: Peer Review
-Each council member receives the responses from all other members, but with **anonymized identities** (labeled as "Response A", "Response B", etc.) to prevent bias. Each model evaluates and ranks the responses based on accuracy and insight. The system calculates aggregate rankings ("Street Cred") across all peer evaluations.
+## Architecture overview
 
-### Stage 3: Final Synthesis
-The designated Chairman model receives all individual responses and peer rankings, then synthesizes them into a single comprehensive final answer that represents the council's collective wisdom.
+- **Frontend (this package)**
+  - React + Vite app in `src/`
+  - Routing and URL‑based conversation selection via `react-router-dom`
+  - Conversations stored entirely in `localStorage` (`src/libs/storage.js`)
+  - Backend used only for LLM council processing (`src/libs/api.js`)
+  - Three main UI regions:
+    - `LeftSidebar` – conversation list and actions
+    - `ChatInterface` – messages and 3‑stage council results
+    - `RightSidebar` – settings (OpenRouter key, models selection, etc.)
 
-## Features
+- **Backend (`backend/` folder)**
+  - NestJS app exposing `/api/council/process` and `/api/council/process/:traceId/status`
+  - Uses `OpenRouterService` to talk to OpenRouter (`https://openrouter.ai`)
+  - Orchestration logic in `CouncilService`:
+    - parallel model queries (Stage 1)
+    - peer ranking and aggregate ranking (Stage 2)
+    - chairman synthesis and optional title generation (Stage 3)
+  - Streams structured SSE events consumed by the frontend
 
-- **Multi-LLM Consultation**: Query multiple models simultaneously via OpenRouter API
-- **Configurable via UI**: Select council models, chairman, and enter your API key directly in the settings sidebar
-- **Anonymized Peer Review**: Models evaluate each other without knowing identities to prevent bias
-- **Real-time Streaming**: Watch the 3-stage process unfold in real-time with Server-Sent Events (SSE)
-- **Conversation Management**: Create, view, and delete conversations with auto-generated titles
-- **Client-Side Storage**: All conversations stored in browser localStorage (no server-side database)
-- **Transparent Process**: Inspect raw model outputs, rankings, and parsed results at each stage
-- **Markdown Support**: Full markdown rendering for all responses
-- **Dark/Light Theme**: Toggle between themes for comfortable viewing
-- **Aggregate Rankings**: See combined "Street Cred" scores showing which models performed best
-
-## Available Models
-
-The following models are available for selection (via OpenRouter):
-
-| Provider | Models |
-|----------|--------|
-| Anthropic | Claude Haiku 4.5, Claude Sonnet 4.5, Claude Opus 4.5 |
-| OpenAI | GPT-5.1 |
-| Google | Gemini 3 Pro |
-| xAI | Grok 4 |
-| DeepSeek | DeepSeek V3.2 |
-| Qwen | Qwen3 Coder Plus |
-| Mistral | Mistral Medium 3.1 |
+---
 
 ## Prerequisites
 
-- Python 3.10 or higher
-- Node.js 18+ and npm
-- [uv](https://docs.astral.sh/uv/) package manager for Python
-- OpenRouter API key ([get one here](https://openrouter.ai/))
+- **Node.js** 20+ (recommended)
+- **npm** 10+  
+- An **OpenRouter** account and API key (`https://openrouter.ai`)
 
-## Setup
+---
 
-### 1. Install Dependencies
+## Installation
 
-**Backend (Python):**
+Clone the repo and install dependencies for the frontend:
+
 ```bash
-uv sync
-```
-
-**Frontend (JavaScript):**
-```bash
-cd frontend
+git clone <this-repo-url>
+cd llm-council
 npm install
-cd ..
 ```
 
-### 2. Run the Application
+> For backend setup and deployment details, see `backend/README.md`.
 
-Start both servers in separate terminals:
+---
 
-**Terminal 1 (Backend):**
+## Configuration
+
+### Frontend (root)
+
+Frontend talks to the backend via `VITE_REACT_BACKEND_API`.  
+If not set, it defaults to `http://localhost:3001`.
+
+Create `.env` in the project root if you need to customize:
+
 ```bash
-uv run python -m backend.main
+VITE_REACT_BACKEND_API=http://localhost:3001
 ```
 
-**Terminal 2 (Frontend):**
+At runtime, the user sets:
+
+- **OpenRouter API key** – stored in `localStorage` (`openRouterApiKey`)
+- **Council models** – JSON‑encoded array in `localStorage` (`councilModels`)
+- **Chairman model** – single model id in `localStorage` (`chairmanModel`)
+
+---
+
+## Running in development
+
+### Start the frontend
+
+From the project root:
+
 ```bash
-cd frontend
 npm run dev
 ```
 
-Then open http://localhost:5173 in your browser.
+Vite will start on `http://localhost:5173` (by default).
 
-### Ports
-- **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:8001
+---
 
-### 3. Configure Settings
+## Usage
 
-Open the application and click the ⚙ (settings) button in the top-right corner to configure:
+1. Open the app in your browser (e.g. `http://localhost:5173`).
+2. On the **Settings** panel (right sidebar):
+   - paste your **OpenRouter API key** (required)
+   - choose **council models** (at least 2)
+   - choose a **chairman model** (required)
+3. Create a new conversation from the left sidebar.
+4. Ask a question in the chat input and send it.
+5. Watch the 3 stages stream in:
+   - Stage 1 responses from each model
+   - Stage 2 rankings plus aggregate rankings and label → model mapping
+   - Stage 3 final synthesis and optional title
 
-1. **OpenRouter API Key**: Enter your API key from [openrouter.ai](https://openrouter.ai/)
-2. **Chairman Model**: Select which model synthesizes the final answer
-3. **Council Models**: Check at least 2 models to participate in deliberation
+Conversations and messages are stored locally in your browser (no backend persistence).
 
-All settings are stored in your browser's localStorage.
+---
 
-> **Note:** You can also set `OPENROUTER_API_KEY` in a `.env` file as a fallback, but the UI-based configuration is preferred.
+## Scripts
 
-## Project Structure
+From the **frontend (root)**:
 
-```
-llm-council/
-├── backend/
-│   ├── __init__.py
-│   ├── config.py          # Configuration and defaults
-│   ├── council.py         # 3-stage orchestration logic
-│   ├── main.py            # FastAPI server and endpoints
-│   └── openrouter.py      # OpenRouter API client
-├── frontend/
-│   ├── src/
-│   │   ├── api.js         # API client (localStorage + backend)
-│   │   ├── storage.js     # LocalStorage conversation management
-│   │   ├── App.jsx        # Main application component
-│   │   ├── context/
-│   │   │   └── ThemeContext.jsx
-│   │   └── components/
-│   │       ├── ChatInterface.jsx
-│   │       ├── LeftSidebar.jsx    # Conversation list
-│   │       ├── RightSidebar.jsx   # Settings panel
-│   │       ├── Stage1.jsx         # Individual responses view
-│   │       ├── Stage2.jsx         # Peer rankings view
-│   │       └── Stage3.jsx         # Final synthesis view
-│   ├── package.json
-│   └── vite.config.js
-├── pyproject.toml
-└── README.md
-```
-
-## Tech Stack
-
-### Backend
-- **FastAPI** - Python web framework with async support
-- **httpx** - Async HTTP client for API requests
-- **uvicorn** - ASGI server
-- **python-dotenv** - Environment variable management
-- **pydantic** - Data validation and settings
-
-### Frontend
-- **React 19** - UI framework
-- **Vite 7** - Build tool and dev server
-- **react-markdown** - Markdown rendering
-- **react-router-dom** - Client-side routing
-
-### Storage
-- **Browser localStorage** - All conversations and settings stored client-side
-
-### Package Management
-- **uv** - Python dependency management
-- **npm** - JavaScript dependency management
-
-## How Stage 2 Anonymization Works
-
-To prevent models from playing favorites, responses are anonymized during peer review:
-
-1. Responses are labeled as "Response A", "Response B", "Response C", etc.
-2. Models receive only these anonymous labels, not the actual model names
-3. The backend maintains a `label_to_model` mapping for de-anonymization
-4. The frontend displays model names in **bold** for readability, with a note that the original evaluation used anonymous labels
-5. This ensures unbiased peer evaluation while maintaining transparency
-
-## Data Flow
-
-```
-User Query
-    ↓
-Stage 1: Parallel queries → [individual responses]
-    ↓
-Stage 2: Anonymize → Parallel ranking queries → [evaluations + parsed rankings]
-    ↓
-Aggregate Rankings Calculation → [sorted by avg position]
-    ↓
-Stage 3: Chairman synthesis with full context
-    ↓
-Return: {stage1, stage2, stage3, metadata}
-    ↓
-Frontend: Display with tabs + validation UI
-    ↓
-Save to localStorage
-```
-
-The entire flow uses async/parallel operations where possible to minimize latency.
-
-## API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/` | Health check |
-| POST | `/api/council/process` | Process message through 3-stage council (SSE stream) |
-| POST | `/api/council/generate-title` | Generate conversation title |
-
-## Error Handling
-
-The system is designed for graceful degradation:
-- If some models fail in Stage 1, the process continues with successful responses
-- If a model fails in Stage 2, other rankings are still collected
-- If the Chairman fails, an error message is returned
-- Frontend validates settings before sending (API key, minimum 2 council models, chairman selected)
-- Errors are logged but don't expose internal details to users
-
-## Development Notes
-
-### Running Backend
-Always run the backend from the project root:
-```bash
-uv run python -m backend.main
-```
-Not from the backend directory, as this ensures proper module resolution.
-
-### CORS
-CORS is enabled for all origins in development. Update `backend/main.py` if you need more restrictive origins in production.
-
-### Markdown Rendering
-All markdown content must be wrapped in `<div className="markdown-content">` for proper styling. This class is defined globally in `frontend/src/index.css`.
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `OPENROUTER_API_KEY` | Fallback API key (UI setting preferred) | None |
-| `VITE_REACT_BACKEND_API` | Backend URL for frontend | `http://localhost:8001` |
-
-## License
-
-This project is provided as-is under the MIT License. Feel free to use, modify, and distribute as you see fit.
+- `npm run dev` – start Vite dev server
+- `npm run build` – create production build
+- `npm run preview` – preview production build
+- `npm run lint` – run ESLint
