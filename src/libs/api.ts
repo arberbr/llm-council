@@ -1,9 +1,3 @@
-/**
- * API client for the LLM Council.
- * Conversation storage is handled via localStorage.
- * Backend is only used for LLM council processing.
- */
-
 import {
   listConversations,
   createConversation,
@@ -13,29 +7,38 @@ import {
   addUserMessage,
   addAssistantMessage,
 } from './storage';
+import { Conversation } from '../types';
 
-// Use VITE_REACT_BACKEND_API environment variable, fallback to localhost for development
-const API_BASE = import.meta.env.VITE_REACT_BACKEND_API || 'http://localhost:3001';
+const API_BASE =
+  (import.meta as { env: { VITE_REACT_BACKEND_API?: string } }).env
+    .VITE_REACT_BACKEND_API || 'http://localhost:3001';
+
+type SendEventType =
+  | 'stage1_start'
+  | 'stage1_complete'
+  | 'stage2_start'
+  | 'stage2_complete'
+  | 'stage3_start'
+  | 'stage3_complete'
+  | 'title_complete'
+  | 'complete'
+  | 'error'
+  | string;
+
+interface SendMessageOptions {
+  generateTitle?: boolean;
+}
 
 export const api = {
-  /**
-   * List all conversations from localStorage.
-   */
-  listConversations() {
+  listConversations(): Promise<ReturnType<typeof listConversations>> {
     return Promise.resolve(listConversations());
   },
 
-  /**
-   * Create a new conversation in localStorage.
-   */
-  createConversation() {
+  createConversation(): Promise<Conversation> {
     return Promise.resolve(createConversation());
   },
 
-  /**
-   * Get a specific conversation from localStorage.
-   */
-  getConversation(conversationId) {
+  getConversation(conversationId: string): Promise<Conversation> {
     const conv = getConversation(conversationId);
     if (!conv) {
       return Promise.reject(new Error('Conversation not found'));
@@ -43,10 +46,9 @@ export const api = {
     return Promise.resolve(conv);
   },
 
-  /**
-   * Delete a specific conversation from localStorage.
-   */
-  deleteConversation(conversationId) {
+  deleteConversation(
+    conversationId: string,
+  ): Promise<{ status: 'deleted'; id: string }> {
     const deleted = deleteConversation(conversationId);
     if (!deleted) {
       return Promise.reject(new Error('Conversation not found'));
@@ -54,10 +56,10 @@ export const api = {
     return Promise.resolve({ status: 'deleted', id: conversationId });
   },
 
-  /**
-   * Update conversation title in localStorage.
-   */
-  updateConversationTitle(conversationId, title) {
+  updateConversationTitle(
+    conversationId: string,
+    title: string,
+  ): Promise<Conversation> {
     try {
       const conv = updateConversationTitle(conversationId, title);
       return Promise.resolve(conv);
@@ -66,10 +68,7 @@ export const api = {
     }
   },
 
-  /**
-   * Save user message to localStorage.
-   */
-  saveUserMessage(conversationId, content) {
+  saveUserMessage(conversationId: string, content: string): Promise<Conversation> {
     try {
       const conv = addUserMessage(conversationId, content);
       return Promise.resolve(conv);
@@ -78,41 +77,44 @@ export const api = {
     }
   },
 
-  /**
-   * Save assistant message to localStorage.
-   */
-  saveAssistantMessage(conversationId, stage1, stage2, stage3, metadata = null) {
+  saveAssistantMessage(
+    conversationId: string,
+    stage1: Conversation['messages'][number]['stage1'],
+    stage2: Conversation['messages'][number]['stage2'],
+    stage3: Conversation['messages'][number]['stage3'],
+    metadata: Conversation['messages'][number]['metadata'] = null,
+  ): Promise<Conversation> {
     try {
-      const conv = addAssistantMessage(conversationId, stage1, stage2, stage3, metadata);
+      const conv = addAssistantMessage(
+        conversationId,
+        stage1,
+        stage2,
+        stage3,
+        metadata,
+      );
       return Promise.resolve(conv);
     } catch (e) {
       return Promise.reject(e);
     }
   },
 
-  /**
-   * Send a message and receive streaming updates from the backend.
-   * Storage is handled client-side; backend only processes LLM calls.
-   * @param {string} conversationId - The conversation ID (for reference only, not sent to backend)
-   * @param {string} content - The message content
-   * @param {function} onEvent - Callback function for each event: (eventType, data) => void
-   * @param {Object} options - Additional options
-   * @param {boolean} options.generateTitle - Whether to generate a title for this message
-   * @returns {Promise<void>}
-   */
-  async sendMessageStream(conversationId, content, onEvent, options = {}) {
-    // Read settings from localStorage
+  async sendMessageStream(
+    conversationId: string,
+    content: string,
+    onEvent: (eventType: SendEventType, event: any) => void,
+    options: SendMessageOptions = {},
+  ): Promise<void> {
     const openRouterApiKey = localStorage.getItem('openRouterApiKey');
     const councilModelsStr = localStorage.getItem('councilModels');
     const chairmanModel = localStorage.getItem('chairmanModel');
 
-    const requestBody = { content };
+    const requestBody: Record<string, unknown> = { content };
     if (openRouterApiKey && openRouterApiKey.trim()) {
       requestBody.api_key = openRouterApiKey;
     }
     if (councilModelsStr) {
       try {
-        const councilModels = JSON.parse(councilModelsStr);
+        const councilModels = JSON.parse(councilModelsStr) as string[];
         if (councilModels && Array.isArray(councilModels) && councilModels.length > 0) {
           requestBody.council_models = councilModels;
         }
@@ -140,6 +142,10 @@ export const api = {
       throw new Error(errorText || 'Failed to process message');
     }
 
+    if (!response.body) {
+      throw new Error('No response body from server');
+    }
+
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
 
@@ -155,7 +161,7 @@ export const api = {
           const data = line.slice(6);
           try {
             const event = JSON.parse(data);
-            onEvent(event.type, event);
+            onEvent(event.type as SendEventType, event);
           } catch (e) {
             console.error('Failed to parse SSE event:', e);
           }
@@ -164,3 +170,5 @@ export const api = {
     }
   },
 };
+
+

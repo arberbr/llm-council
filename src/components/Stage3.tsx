@@ -1,6 +1,11 @@
 import ReactMarkdown from 'react-markdown';
+import { Stage3Final } from '../types';
 
-export default function Stage3({ finalResponse }) {
+interface Stage3Props {
+  finalResponse: Stage3Final | null;
+}
+
+export default function Stage3({ finalResponse }: Stage3Props) {
   if (!finalResponse) {
     return null;
   }
@@ -19,3 +24,5 @@ export default function Stage3({ finalResponse }) {
     </div>
   );
 }
+
+

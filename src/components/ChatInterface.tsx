@@ -1,16 +1,23 @@
-import { useState, useEffect, useRef } from 'react';
+import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import Stage1 from './Stage1';
 import Stage2 from './Stage2';
 import Stage3 from './Stage3';
+import { Conversation } from '../types';
+
+interface ChatInterfaceProps {
+  conversation: Conversation | null;
+  onSendMessage: (content: string) => Promise<void> | void;
+  isLoading: boolean;
+}
 
 export default function ChatInterface({
   conversation,
   onSendMessage,
   isLoading,
-}) {
+}: ChatInterfaceProps) {
   const [input, setInput] = useState('');
-  const messagesEndRef = useRef(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -20,7 +27,7 @@ export default function ChatInterface({
     scrollToBottom();
   }, [conversation]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (input.trim() && input.trim().length > 5 && !isLoading) {
       onSendMessage(input);
@@ -30,11 +37,10 @@ export default function ChatInterface({
     }
   };
 
-  const handleKeyDown = (e) => {
-    // Submit on Enter (without Shift)
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e);
+      handleSubmit(e as unknown as FormEvent);
     }
   };
 
@@ -64,7 +70,6 @@ export default function ChatInterface({
                 <div className="assistant-message">
                   <div className="message-label">LLM Council</div>
 
-                  {/* Stage 1 */}
                   {msg.loading?.stage1 && (
                     <div className="stage-loading">
                       <div className="spinner"></div>
@@ -73,7 +78,6 @@ export default function ChatInterface({
                   )}
                   {msg.stage1 && <Stage1 responses={msg.stage1} />}
 
-                  {/* Stage 2 */}
                   {msg.loading?.stage2 && (
                     <div className="stage-loading">
                       <div className="spinner"></div>
@@ -88,7 +92,6 @@ export default function ChatInterface({
                     />
                   )}
 
-                  {/* Stage 3 */}
                   {msg.loading?.stage3 && (
                     <div className="stage-loading">
                       <div className="spinner"></div>
@@ -105,7 +108,6 @@ export default function ChatInterface({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Only show input form on homepage (when conversation is null) */}
       {!conversation && (
         <form className="input-form" onSubmit={handleSubmit}>
           <textarea
@@ -116,15 +118,10 @@ export default function ChatInterface({
             onKeyDown={handleKeyDown}
             disabled={isLoading}
           />
-          {/* <button
-            type="submit"
-            className="send-button"
-            disabled={(!input.trim() || input.trim().length < 5) || isLoading}
-          >
-            Send
-          </button> */}
         </form>
       )}
     </div>
   );
 }
+
+

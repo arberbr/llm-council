@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { AggregateRanking, Stage2Ranking } from '../types';
 
-function deAnonymizeText(text, labelToModel) {
+function deAnonymizeText(
+  text: string,
+  labelToModel?: Record<string, string> | null,
+): string {
   if (!labelToModel) return text;
 
   let result = text;
-  // Replace each "Response X" with the actual model name
   Object.entries(labelToModel).forEach(([label, model]) => {
     const modelShortName = model.split('/')[1] || model;
     result = result.replace(new RegExp(label, 'g'), `**${modelShortName}**`);
@@ -13,7 +16,17 @@ function deAnonymizeText(text, labelToModel) {
   return result;
 }
 
-export default function Stage2({ rankings, labelToModel, aggregateRankings }) {
+interface Stage2Props {
+  rankings: Stage2Ranking[];
+  labelToModel?: Record<string, string> | null;
+  aggregateRankings?: AggregateRanking[] | null;
+}
+
+export default function Stage2({
+  rankings,
+  labelToModel,
+  aggregateRankings,
+}: Stage2Props) {
   const [activeTab, setActiveTab] = useState(0);
 
   if (!rankings || rankings.length === 0) {
@@ -26,8 +39,9 @@ export default function Stage2({ rankings, labelToModel, aggregateRankings }) {
 
       <h4>Raw Evaluations</h4>
       <p className="stage-description">
-        Each model evaluated all responses (anonymized as Response A, B, C, etc.) and provided rankings.
-        Below, model names are shown in <strong>bold</strong> for readability, but the original evaluation used anonymous labels.
+        Each model evaluated all responses (anonymized as Response A, B, C, etc.) and
+        provided rankings. Below, model names are shown in <strong>bold</strong> for
+        readability, but the original evaluation used anonymous labels.
       </p>
 
       <div className="tabs">
@@ -43,9 +57,7 @@ export default function Stage2({ rankings, labelToModel, aggregateRankings }) {
       </div>
 
       <div className="tab-content">
-        <div className="ranking-model">
-          {rankings[activeTab].model}
-        </div>
+        <div className="ranking-model">{rankings[activeTab].model}</div>
         <div className="ranking-content markdown-content">
           <ReactMarkdown>
             {deAnonymizeText(rankings[activeTab].ranking, labelToModel)}
@@ -53,20 +65,20 @@ export default function Stage2({ rankings, labelToModel, aggregateRankings }) {
         </div>
 
         {rankings[activeTab].parsed_ranking &&
-         rankings[activeTab].parsed_ranking.length > 0 && (
-          <div className="parsed-ranking">
-            <strong>Extracted Ranking:</strong>
-            <ol>
-              {rankings[activeTab].parsed_ranking.map((label, i) => (
-                <li key={i}>
-                  {labelToModel && labelToModel[label]
-                    ? labelToModel[label].split('/')[1] || labelToModel[label]
-                    : label}
-                </li>
-              ))}
-            </ol>
-          </div>
-        )}
+          rankings[activeTab].parsed_ranking.length > 0 && (
+            <div className="parsed-ranking">
+              <strong>Extracted Ranking:</strong>
+              <ol>
+                {rankings[activeTab].parsed_ranking.map((label, i) => (
+                  <li key={i}>
+                    {labelToModel && labelToModel[label]
+                      ? labelToModel[label].split('/')[1] || labelToModel[label]
+                      : label}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
       </div>
 
       {aggregateRankings && aggregateRankings.length > 0 && (
@@ -96,3 +108,5 @@ export default function Stage2({ rankings, labelToModel, aggregateRankings }) {
     </div>
   );
 }
+
+

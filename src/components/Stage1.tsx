@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { Stage1Response } from '../types';
 
-export default function Stage1({ responses }) {
+interface Stage1Props {
+  responses: Stage1Response[];
+}
+
+export default function Stage1({ responses }: Stage1Props) {
   const [activeTab, setActiveTab] = useState(0);
 
   if (!responses || responses.length === 0) {
@@ -33,3 +38,5 @@ export default function Stage1({ responses }) {
     </div>
   );
 }
+
+

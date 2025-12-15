@@ -1,3 +1,15 @@
+import { ConversationSummary } from '../types';
+
+interface LeftSidebarProps {
+  conversations: ConversationSummary[];
+  currentConversationId: string | null;
+  onSelectConversation: (id: string) => void;
+  onDeleteConversation: (id: string) => void;
+  onHomeClick: () => void;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
 export default function LeftSidebar({
   conversations,
   currentConversationId,
@@ -5,8 +17,7 @@ export default function LeftSidebar({
   onDeleteConversation,
   onHomeClick,
   isOpen,
-  onClose,
-}) {
+}: LeftSidebarProps) {
   return (
     <div className={`sidebar ${isOpen ? 'sidebar-open' : ''}`}>
       <div className="sidebar-header">
@@ -22,8 +33,9 @@ export default function LeftSidebar({
           conversations.map((conv) => (
             <div
               key={conv.id}
-              className={`conversation-item ${conv.id === currentConversationId ? 'active' : ''
-                }`}
+              className={`conversation-item ${
+                conv.id === currentConversationId ? 'active' : ''
+              }`}
             >
               <div
                 className="conversation-main"
@@ -50,3 +62,5 @@ export default function LeftSidebar({
     </div>
   );
 }
+
+
