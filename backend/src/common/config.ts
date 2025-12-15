@@ -10,4 +10,4 @@ export const COUNCIL_MODELS = [
 ];
 
 // Chairman model - synthesizes final response
-export const CHAIRMAN_MODEL = 'google/gemini-3-pro-preview';
+export const CHAIRMAN_MODEL = 'openai/gpt-5.2';

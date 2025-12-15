@@ -17,7 +17,7 @@ const DEFAULT_COUNCIL_MODELS = [
     'anthropic/claude-sonnet-4.5',
 ];
 
-const DEFAULT_CHAIRMAN_MODEL = 'google/gemini-3-pro-preview';
+const DEFAULT_CHAIRMAN_MODEL = 'openai/gpt-5.2';
 
 export default function RightSidebar({ isOpen, onClose }) {
     const { theme, toggleTheme } = useTheme();
